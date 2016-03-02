@@ -12,35 +12,36 @@ static int argv_size;		/* end of argv */
 
 extern char **environ;
 
+// TODO: 不確定這個初始化了甚麼
 void
 initsetproctitle(int argc, char **argv, char **envp)
 {
-    int i, len=0, nenv=0;
+  int i, len=0, nenv=0;
 
-    /*
-     * Move the environment so setproctitle can use the space at the top of
-     * memory.
-     */
-    for (i = 0; envp[i]; i++)
-	len += strlen(envp[i])+1;
+  /*
+  * Move the environment so setproctitle can use the space at the top of
+  * memory.
+  */
+  for (i = 0; envp[i]; i++)
+    len += strlen(envp[i])+1;
 
-    nenv = i + 1;
-    len += sizeof(char*)*nenv;
-    environ = malloc(len);
-    len = 0;
-    for (i = 0; envp[i]; i++) {
-        environ[i] = (char*)environ + nenv * sizeof(char*) + len;
-	strcpy(environ[i], envp[i]);
-	len += strlen(envp[i])+1;
-    }
-    environ[i] = NULL;
+  nenv = i + 1;
+  len += sizeof(char*)*nenv;
+  environ = malloc(len);
+  len = 0;
+  for (i = 0; envp[i]; i++) {
+    environ[i] = (char*)environ + nenv * sizeof(char*) + len;
+    strcpy(environ[i], envp[i]);
+    len += strlen(envp[i])+1;
+  }
+  environ[i] = NULL;
 
-    /* Save start and extent of argv for setproctitle. */
-    Argv = argv;
-    if (i > 0)
-	argv_size = envp[i - 1] + strlen(envp[i - 1]) - Argv[0];
-    else
-	argv_size = argv[argc - 1] + strlen(argv[argc - 1]) - Argv[0];
+  /* Save start and extent of argv for setproctitle. */
+  Argv = argv;
+  if (i > 0)
+	 argv_size = envp[i - 1] + strlen(envp[i - 1]) - Argv[0];
+  else
+	 argv_size = argv[argc - 1] + strlen(argv[argc - 1]) - Argv[0];
 }
 
 static void
@@ -68,4 +69,3 @@ setproctitle(const char *format,...)
 }
 
 #endif
-

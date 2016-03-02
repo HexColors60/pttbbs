@@ -74,6 +74,7 @@ int convert_read_utf8(VBUF *v, const void *buf, size_t len) {
     return written;
 }
 
+// XXX: 設定 Encoding 的方式
 void set_converting_type(ConvertMode mode)
 {
     switch(mode) {

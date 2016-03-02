@@ -1,0 +1,1 @@
+Q1: 從 mbbsd struct ProgramOption 的結構來看，BBS 可以 bind 的在一堆 port 上面 (不過有上限，定義在 mbbsd.c 的 MAX_BINDPORT)？為什麼要這樣做？
