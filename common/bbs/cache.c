@@ -41,7 +41,7 @@
 unsigned int
 safe_sleep(unsigned int seconds)
 {
-    /* jochang  sleep¦³°İÃD®É¥Î */
+    /* jochang  sleepæœ‰å•é¡Œæ™‚ç”¨ */
     sigset_t        set, oldset;
 
     sigemptyset(&set);
@@ -61,86 +61,96 @@ safe_sleep(unsigned int seconds)
 
 /*
  * section - SHM
+ * é¡¯ç¤º Shared Memory ç›¸é—œçš„éŒ¯èª¤è¨Šæ¯
  */
 static void
 attach_err(int shmkey, const char *name)
 {
-    fprintf(stderr, "[%s error] key = %x\n", name, shmkey);
-    fprintf(stderr, "errno = %d: %s\n", errno, strerror(errno));
-    exit(1);
+  fprintf(stderr, "[%s error] key = %x\n", name, shmkey);
+  fprintf(stderr, "errno = %d: %s\n", errno, strerror(errno));
+  exit(1);
 }
 
 void           *
 attach_shm(int shmkey, int shmsize)
 {
-    void           *shmptr = (void *)NULL;
-    int             shmid;
+  void *shmptr = (void *) NULL;
+  int shmid;
 
-    shmid = shmget(shmkey, shmsize,
+  // å»ºç«‹ shared memory
+  shmid = shmget(shmkey, shmsize,
+
+  // ä½¿ç”¨ Huge Table Support
 #ifdef USE_HUGETLB
-	    SHM_HUGETLB |
+	SHM_HUGETLB |
 #endif
-	    0);
-    if (shmid < 0) {
-	// SHM should be created by uhash_loader, NOT mbbsd or other utils
-	attach_err(shmkey, "shmget");
-    } else {
-	shmptr = (void *)shmat(shmid, NULL, 0);
-	if (shmptr == (void *)-1)
-	    attach_err(shmkey, "shmat");
-    }
+	0);
 
-    return shmptr;
+  if (shmid < 0) { // å¦‚æœé…ç½®è¨˜æ†¶é«”å‡ºéŒ¯
+    // SHM should be created by uhash_loader, NOT mbbsd or other utils
+    attach_err(shmkey, "shmget");
+  } else {
+    // å–å¾— shared memory å°æ‡‰çš„è¨˜æ†¶é«”ä½ç½®
+    // ç”¨ä¾†å­˜å– shared memory
+    shmptr = (void *)shmat(shmid, NULL, 0);
+    if (shmptr == (void *) -1)
+      attach_err(shmkey, "shmat");
+  }
+
+  return shmptr;
 }
 
-static void 
+static void
 shm_check_error()
 {
-    fprintf(stderr, "Please use the source code version corresponding to SHM,\n"
-	    "or use ipcrm(1) command to clean share memory.\n");
-    exit(1);
+  fprintf(stderr, "Please use the source code version corresponding to SHM,\n"
+      "or use ipcrm(1) command to clean share memory.\n");
+  exit(1);
 }
 
 void
 attach_check_SHM(int version, int SHM_t_size)
 {
-    SHM = attach_shm(SHM_KEY, SHMSIZE);
+  // å»ºç«‹ shared memory
+  // SHM æ˜¯ type ç‚º SHM_t çš„ global variable
+  SHM = attach_shm(SHM_KEY, SHMSIZE);
 
-    // check main program -> common bbs library
-    if (version      != SHM_VERSION) {
-	fprintf(stderr, "Error: version(%d) != SHM_VERSION(%d)\n",
-		version, SHM_VERSION);
-	shm_check_error();
-    }
-    if (SHM_t_size   != sizeof(SHM_t)) {
-	fprintf(stderr, "Error: SHM_t_size(%d) != sizeof(SHM_t)(%zd)\n",
-		SHM_t_size, sizeof(SHM_t));
-	shm_check_error();
-    }
-    // check common bbs library -> SHM
-    if (SHM->version != SHM_VERSION) {
-	fprintf(stderr, "Error: SHM->version(%d) != SHM_VERSION(%d)\n", 
-		SHM->version, SHM_VERSION);
-	shm_check_error();
-    }
-    if (SHM->size    != sizeof(SHM_t)) {
-	fprintf(stderr, "Error: SHM->size(%d) != sizeof(SHM_t)(%zd)\n", 
-		SHM->size, sizeof(SHM_t));
-	shm_check_error();
-    }
+  // check main program -> common bbs library
+  if (version      != SHM_VERSION) {
+    fprintf(stderr, "Error: version(%d) != SHM_VERSION(%d)\n",
+        version, SHM_VERSION);
+    shm_check_error();
+  }
+  if (SHM_t_size   != sizeof(SHM_t)) {
+    fprintf(stderr, "Error: SHM_t_size(%d) != sizeof(SHM_t)(%zd)\n",
+        SHM_t_size, sizeof(SHM_t));
+    shm_check_error();
+  }
 
-    if (!SHM->loaded)		/* (uhash) assume fresh shared memory is
-				 * zeroed */
-	exit(1);
-    if (SHM->Btouchtime == 0)
-	SHM->Btouchtime = 1;
-    bcache = SHM->bcache;
+  // check common bbs library -> SHM
+  if (SHM->version != SHM_VERSION) {
+    fprintf(stderr, "Error: SHM->version(%d) != SHM_VERSION(%d)\n",
+        SHM->version, SHM_VERSION);
+    shm_check_error();
+  }
+  if (SHM->size    != sizeof(SHM_t)) {
+    fprintf(stderr, "Error: SHM->size(%d) != sizeof(SHM_t)(%zd)\n",
+        SHM->size, sizeof(SHM_t));
+    shm_check_error();
+  }
 
-    if (SHM->Ptouchtime == 0)
-	SHM->Ptouchtime = 1;
+  if (!SHM->loaded)		/* (uhash) assume fresh shared memory is zeroed */
+    exit(1);
 
-    if (SHM->Ftouchtime == 0)
-	SHM->Ftouchtime = 1;
+  // åˆå§‹åŒ–ä¸€äº› SHM çš„åŸºæœ¬è³‡æ–™
+  if (SHM->Btouchtime == 0)
+    SHM->Btouchtime = 1;
+  // å–å¾—ä¸€å€‹æŒ‡å‘çœ‹æ¿è³‡è¨Šé™£åˆ—çš„ shortcut
+  bcache = SHM->bcache;
+  if (SHM->Ptouchtime == 0)
+    SHM->Ptouchtime = 1;
+  if (SHM->Ftouchtime == 0)
+    SHM->Ftouchtime = 1;
 }
 
 /*
@@ -153,7 +163,7 @@ attach_check_SHM(int version, int SHM_t_size)
  * data into the hash. (that program could be run in rc-scripts or something
  * like that) after loading completes, the stand-alone program sets loaded to
  * 1 and exits.
- * 
+ *
  * the bbs exits if it can't attach to the shared memory or the hash is not
  * loaded yet.
  */
@@ -301,7 +311,7 @@ search_ulistn(int uid, int unum)
 	j = uid - u->uid;
 	if (j == 0) {
 	    for (; i > 0 && uid == SHM->uinfo[ulist[i - 1]].uid; --i)
-		;/* «ü¨ì²Ä¤@µ§ */
+		;/* æŒ‡åˆ°ç¬¬ä¸€ç­† */
 	    // piaip Tue Jan  8 09:28:03 CST 2008
 	    // many people bugged about that their utmp have invalid
 	    // entry on record.
@@ -326,7 +336,7 @@ search_ulistn(int uid, int unum)
 		  uid == SHM->uinfo[ulist[i + unum - 1]].uid ) )
 		return &SHM->uinfo[ulist[i + unum - 1]];
 		*/
-	    break;		/* ¶W¹L½d³ò */
+	    break;		/* è¶…éç¯„åœ */
 	}
 	if (end == start) {
 	    break;
@@ -404,7 +414,7 @@ void touchbtotal(int bid) {
 }
 
 /**
- * qsort comparison function - ·ÓªO¦W±Æ§Ç
+ * qsort comparison function - ç…§æ¿åæ’åº
  */
 static int
 cmpboardname(const void * i, const void * j)
@@ -413,7 +423,7 @@ cmpboardname(const void * i, const void * j)
 }
 
 /**
- * qsort comparison function - ¥ı·Ó¸s²Õ±Æ§Ç¡B¦P¤@­Ó¸s²Õ¤º¨ÌªO¦W±Æ
+ * qsort comparison function - å…ˆç…§ç¾¤çµ„æ’åºã€åŒä¸€å€‹ç¾¤çµ„å…§ä¾æ¿åæ’
  */
 static int
 cmpboardclass(const void * i, const void * j)
@@ -431,8 +441,8 @@ void
 sort_bcache(void)
 {
     int             i;
-    /* critical section ºÉ¶q¤£­n©I¥s  */
-    /* ¥u¦³·s¼W ©Î²¾°£¬İªO »İ­n©I¥s¨ì */
+    /* critical section ç›¡é‡ä¸è¦å‘¼å«  */
+    /* åªæœ‰æ–°å¢ æˆ–ç§»é™¤çœ‹æ¿ éœ€è¦å‘¼å«åˆ° */
     if(SHM->Bbusystate) {
 	sleep(1);
 	return;
@@ -472,7 +482,7 @@ reload_bcache(void)
     memset(SHM->lastposttime, 0, MAX_BOARD * sizeof(time4_t));
     memset(SHM->total, 0, MAX_BOARD * sizeof(int));
 
-    /* µ¥©Ò¦³ boards ¸ê®Æ§ó·s«á¦A³]©w uptime */
+    /* ç­‰æ‰€æœ‰ boards è³‡æ–™æ›´æ–°å¾Œå†è¨­å®š uptime */
     SHM->Buptime = SHM->Btouchtime;
     // log_usies("CACHE", "reload bcache");
     fprintf(stderr, "cache: reload bcache\r\n");
@@ -487,7 +497,7 @@ reload_bcache(void)
 	if( SHM->bcache[i].brdname[0] ){
 	    char    fn[128];
 	    int n;
-	    sprintf(fn, "boards/%c/%s/" FN_DIR ".bottom", 
+	    sprintf(fn, "boards/%c/%s/" FN_DIR ".bottom",
 		    SHM->bcache[i].brdname[0],
 		    SHM->bcache[i].brdname);
 	    n = get_num_records(fn, sizeof(fileheader_t));
@@ -522,7 +532,7 @@ void addbrd_touchcache(void)
 
 void
 reset_board(int bid) /* XXXbid: from 1 */
-{				/* Ptt: ³o¼Ë´N¤£¥Î¦Ñ¬Otouch board¤F */
+{				/* Ptt: é€™æ¨£å°±ä¸ç”¨è€æ˜¯touch boardäº† */
     int             fd;
     boardheader_t  *bhdr;
 
@@ -581,7 +591,7 @@ setbtotal(int bid)
     assert(0<=bid-1 && bid-1<MAX_BOARD);
     setbfile(genbuf, bh->brdname, FN_DIR);
     if ((fd = open(genbuf, O_RDWR)) < 0)
-	return;			/* .DIR±¾¤F */
+	return;			/* .DIRæ›äº† */
     fstat(fd, &st);
     num = st.st_size / sizeof(fileheader_t);
     assert(0<=bid-1 && bid-1<MAX_BOARD);
@@ -666,15 +676,15 @@ buildBMcache(int bid) /* bid starts from 1 */
 
 /*
  * section - PTT cache (adbanner cache?)
- * °ÊºA¬İªO»P¨ä¥¦
+ * å‹•æ…‹çœ‹æ¿èˆ‡å…¶å®ƒ
  */
-int 
+int
 filter_aggressive(const char*s)
 {
     (void)s;
     if (
 	/*
-	strstr(s, "¦¹³B©ñ¸û¤£¾A·íªºª§Ä³©Ê¦r¥y") != NULL ||
+	strstr(s, "æ­¤è™•æ”¾è¼ƒä¸é©ç•¶çš„çˆ­è­°æ€§å­—å¥") != NULL ||
 	*/
 	0
 	)
@@ -682,11 +692,11 @@ filter_aggressive(const char*s)
     return 0;
 }
 
-int 
+int
 filter_dirtywords(const char*s)
 {
     if (
-	strstr(s, "·F§A®Q") != NULL ||
+	strstr(s, "å¹¹ä½ å¨˜") != NULL ||
 	0)
 	return 1;
     return 0;
@@ -695,7 +705,7 @@ filter_dirtywords(const char*s)
 #define AGGRESSIVE_FN ".aggressive"
 static char drop_aggressive = 0;
 
-void 
+void
 load_aggressive_state()
 {
     if (dashf(AGGRESSIVE_FN))
@@ -704,7 +714,7 @@ load_aggressive_state()
 	drop_aggressive = 0;
 }
 
-void 
+void
 set_aggressive_state(int s)
 {
     FILE *fp = NULL;
@@ -717,7 +727,7 @@ set_aggressive_state(int s)
     }
 }
 
-/* cache for °ÊºA¬İªO */
+/* cache for å‹•æ…‹çœ‹æ¿ */
 void
 reload_pttcache(void)
 {
@@ -749,12 +759,12 @@ reload_pttcache(void)
 		if (item.title[3] != '<' || item.title[8] != '>')
 		    continue;
 
-#define ORDERSONG_FOLDERNAME	"<ÂIºq>"
+#define ORDERSONG_FOLDERNAME	"<é»æ­Œ>"
 		if (strncmp(item.title+3, ORDERSONG_FOLDERNAME, strlen(ORDERSONG_FOLDERNAME)) == 0)
 		    is_ordersong_dir = 1;
 
 #ifdef BN_NOTE_AGGCHKDIR
-		// TODO aggressive: only count '<ÂIºq>' section
+		// TODO aggressive: only count '<é»æ­Œ>' section
 		if (strncmp(item.title+3, BN_NOTE_AGGCHKDIR, strlen(BN_NOTE_AGGCHKDIR)) == 0)
 		    chkagg = 1;
 #endif
@@ -794,8 +804,8 @@ reload_pttcache(void)
 			    id++;
 			// Debug purpose
 			// fprintf(stderr, "found aggressive: %s\r\n", buf);
-		    } 
-		    else 
+		    }
+		    else
 		    {
 			id++;
 		    }
@@ -827,7 +837,7 @@ reload_pttcache(void)
 	}
 	SHM->last_film = id - 1;
 
-	/* µ¥©Ò¦³¸ê®Æ§ó·s«á¦A³]©w uptime */
+	/* ç­‰æ‰€æœ‰è³‡æ–™æ›´æ–°å¾Œå†è¨­å®š uptime */
 
 	SHM->Puptime = SHM->Ptouchtime;
 	// log_usies("CACHE", "reload pttcache");
@@ -841,14 +851,14 @@ resolve_garbage(void)
 {
     int             count = 0;
 
-    while (SHM->Puptime < SHM->Ptouchtime) {	/* ¤£¥Îwhileµ¥ */
+    while (SHM->Puptime < SHM->Ptouchtime) {	/* ä¸ç”¨whileç­‰ */
 	reload_pttcache();
 	if (count++ > 10 && SHM->Pbusystate) {
 	    /*
-	     * Ptt: ³oÃä·|¦³°İÃD  load¶W¹L10 ¬í·|©Ò¦³¶iloopªºprocess tate = 0
-	     * ³o¼Ë·|©Ò¦³prcosee³£·|¦bload °ÊºA¬İªO ·|³y¦¨load¤j¼W
-	     * ¦ı¨S¦³¥Î³o­Ófunctionªº¸Ü ¸U¤@load passwdÀÉªºprocess¦º¤F
-	     * ¤S¨S¦³¤H§â¥L ¸Ñ¶}  ¦P¼Ëªº°İÃDµo¥Í¦breload passwd
+	     * Ptt: é€™é‚Šæœƒæœ‰å•é¡Œ  loadè¶…é10 ç§’æœƒæ‰€æœ‰é€²loopçš„process tate = 0
+	     * é€™æ¨£æœƒæ‰€æœ‰prcoseeéƒ½æœƒåœ¨load å‹•æ…‹çœ‹æ¿ æœƒé€ æˆloadå¤§å¢
+	     * ä½†æ²’æœ‰ç”¨é€™å€‹functionçš„è©± è¬ä¸€load passwdæª”çš„processæ­»äº†
+	     * åˆæ²’æœ‰äººæŠŠä»– è§£é–‹  åŒæ¨£çš„å•é¡Œç™¼ç”Ÿåœ¨reload passwd
 	     */
 	    SHM->Pbusystate = 0;
 	    // log_usies("CACHE", "refork Ptt dead lock");
@@ -859,7 +869,7 @@ resolve_garbage(void)
 
 /*
  * section - from host (deprecated by fromd / logind?)
- * cache for from host »P³Ì¦h¤W½u¤H¼Æ 
+ * cache for from host èˆ‡æœ€å¤šä¸Šç·šäººæ•¸
  */
 void
 reload_fcache(void)
@@ -870,7 +880,7 @@ reload_fcache(void)
 	SHM->Fbusystate = 1;
 	SHM->max_user = 0;
 
-	/* µ¥©Ò¦³¸ê®Æ§ó·s«á¦A³]©w uptime */
+	/* ç­‰æ‰€æœ‰è³‡æ–™æ›´æ–°å¾Œå†è¨­å®š uptime */
 	SHM->Fuptime = SHM->Ftouchtime;
 	// log_usies("CACHE", "reload fcache");
 	fprintf(stderr, "cache: reload from cache\r\n");
@@ -920,7 +930,7 @@ hbflreload(int bid)
     memcpy(SHM->hbfl[bid-1], hbfl, sizeof(hbfl));
 }
 
-/* ¬O§_³q¹LªO¤Í´ú¸Õ. ¦pªG¦bªO¤Í¦W³æ¤¤ªº¸Ü¶Ç¦^ 1, §_«h¬° 0 */
+/* æ˜¯å¦é€šéæ¿å‹æ¸¬è©¦. å¦‚æœåœ¨æ¿å‹åå–®ä¸­çš„è©±å‚³å› 1, å¦å‰‡ç‚º 0 */
 int
 is_hidden_board_friend(int bid, int uid)
 {
@@ -944,7 +954,7 @@ is_hidden_board_friend(int bid, int uid)
 void add_cooldowntime(int uid, int min)
 {
     // Ptt: I will use the number below 15 seconds.
-    time4_t base= now > SHM->cooldowntime[uid - 1]? 
+    time4_t base= now > SHM->cooldowntime[uid - 1]?
                     now : SHM->cooldowntime[uid - 1];
     base += min*60;
     base &= 0xFFFFFFF0;

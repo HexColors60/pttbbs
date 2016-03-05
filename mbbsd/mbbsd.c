@@ -1811,15 +1811,16 @@ int main(int argc, char *argv[], char *envp[])
   // TODO: 不確定這個初始化了甚麼
   initsetproctitle(argc, argv, envp);
 
-  // TODO: 下次從這裡開始，裡面似乎初始化了一些關於 cache 的資訊
+  // 初始化 Shared Memory
   attach_SHM();
 
-    if (!option->daemon_mode)
-	oklogin = shell_login (argv[0], option);
-    else if (option->tunnel_mode)
-	oklogin = tunnel_login(argv[0], option);
-    else
-	oklogin = daemon_login(argv[0], option);
+  // TODO: 下次從這裡開始
+  if (!option->daemon_mode)
+    oklogin = shell_login(argv[0], option);
+  else if (option->tunnel_mode)
+    oklogin = tunnel_login(argv[0], option);
+  else
+    oklogin = daemon_login(argv[0], option);
 
     if (!oklogin) {
 	free_program_option(option);
@@ -2008,133 +2009,131 @@ tunnel_login(char *argv0, struct ProgramOption *option)
 static int
 daemon_login(char *argv0, struct ProgramOption *option)
 {
-    int             msock = 0, csock;	/* socket for Master and Child */
-    FILE           *fp;
-    int             len_of_sock_addr, overloading = 0;
-    char            buf[256];
+  int             msock = 0, csock;	/* socket for Master and Child */
+  FILE           *fp;
+  int             len_of_sock_addr, overloading = 0;
+  char            buf[256];
 #if OVERLOADBLOCKFDS
-    int             blockfd[OVERLOADBLOCKFDS];
-    int             nblocked = 0;
+  int             blockfd[OVERLOADBLOCKFDS];
+  int             nblocked = 0;
 #endif
-    BanIpList      *banip = NULL;
-    struct sockaddr_in xsin;
-    xsin.sin_family = AF_INET;
+  BanIpList      *banip = NULL;
+  struct sockaddr_in xsin;
+  xsin.sin_family = AF_INET;
 
-    /* setup standalone */
-    start_daemon(option);
-    signal_restart(SIGCHLD, reapchild);
+  /* setup standalone */
+  start_daemon(option);
+  signal_restart(SIGCHLD, reapchild);
 
-    /* port binding */
-    if (option->flag_listenfd < 0) {
-	int i;
-	assert(option->nport > 0);
-	for (i = 0; i < option->nport; i++) {
-	    listen_port = option->port[i];
-	    if (i == option->nport - 1 || fork() == 0) {
-		if( (msock = bind_port(listen_port)) < 0 ){
-		    syslog(LOG_ERR, "mbbsd bind_port failed.\n");
-		    exit(1);
-		}
-		break;
-	    }
-	}
-    } else {
-	msock = option->flag_listenfd;
-	assert(option->nport == 1);
-	listen_port = option->port[0];
-    }
+  /* port binding */
+  if (option->flag_listenfd < 0) {
+    int i;
+    assert(option->nport > 0);
+    for (i = 0; i < option->nport; i++) {
+      listen_port = option->port[i];
+      if (i == option->nport - 1 || fork() == 0) {
+        if( (msock = bind_port(listen_port)) < 0 ){
+          syslog(LOG_ERR, "mbbsd bind_port failed.\n");
+		      exit(1);
+		    }
+	      break;
+      }
+	  }
+  } else {
+    msock = option->flag_listenfd;
+    assert(option->nport == 1);
+    listen_port = option->port[0];
+  }
 
-    /* Give up root privileges: no way back from here */
-    setgid(BBSGID);
-    setuid(BBSUID);
-    chdir(BBSHOME);
+  /* Give up root privileges: no way back from here */
+  setgid(BBSGID);
+  setuid(BBSUID);
+  chdir(BBSHOME);
 
-    /* proctitle */
+  /* proctitle */
 #ifndef VALGRIND
-    snprintf(margs, sizeof(margs), "%s %d ", argv0, listen_port);
-    setproctitle("%s: listening ", margs);
+  snprintf(margs, sizeof(margs), "%s %d ", argv0, listen_port);
+  setproctitle("%s: listening ", margs);
 #endif
 
-    // Load ban ip table.
-    banip = load_banip_list(FN_CONF_BANIP, NULL);
+  // Load ban ip table.
+  banip = load_banip_list(FN_CONF_BANIP, NULL);
 
 #ifdef PRE_FORK
-    if (option->flag_fork) {
-	if( listen_port == 23 ){ // only pre-fork in port 23
+  if (option->flag_fork) {
+    if( listen_port == 23 ){ // only pre-fork in port 23
 	    int i;
 	    for( i = 0 ; i < PRE_FORK ; ++i )
-		if( fork() <= 0 )
-		    break;
-	}
+        if( fork() <= 0 )
+		      break;
     }
+  }
 #endif
 
-    snprintf(buf, sizeof(buf),
-	     "run/mbbsd.%d.%d.pid", listen_port, (int)getpid());
-    if ((fp = fopen(buf, "w"))) {
-	fprintf(fp, "%d\n", (int)getpid());
-	fclose(fp);
+  snprintf(buf, sizeof(buf), "run/mbbsd.%d.%d.pid", listen_port, (int)getpid());
+  if ((fp = fopen(buf, "w"))) {
+    fprintf(fp, "%d\n", (int)getpid());
+    fclose(fp);
+  }
+
+  /* main loop */
+  while( 1 ){
+    len_of_sock_addr = sizeof(xsin);
+    if ( (csock = accept(msock, (struct sockaddr *)&xsin,
+		    (socklen_t *)&len_of_sock_addr)) < 0 ) {
+      if (errno != EINTR)
+        sleep(1);
+	    continue;
     }
 
-    /* main loop */
-    while( 1 ){
-	len_of_sock_addr = sizeof(xsin);
-	if ( (csock = accept(msock, (struct sockaddr *)&xsin,
-			(socklen_t *)&len_of_sock_addr)) < 0 ) {
-	    if (errno != EINTR)
-		sleep(1);
-	    continue;
-	}
-
-        overloading = check_ban_and_load(csock, option, banip,
-                                         xsin.sin_addr.s_addr,
-                                         NULL);
+    overloading = check_ban_and_load(csock, option, banip,
+        xsin.sin_addr.s_addr, NULL);
 #if OVERLOADBLOCKFDS
-	if( (!overloading && nblocked) ||
+    if( (!overloading && nblocked) ||
 	    (overloading && nblocked == OVERLOADBLOCKFDS) ){
 	    int i;
 	    for( i = 0 ; i < OVERLOADBLOCKFDS ; ++i )
-		if( blockfd[i] != csock && blockfd[i] != msock )
-		    /* blockfd[i] should not be msock, but it happened */
-		    close(blockfd[i]);
-	    nblocked = 0;
-	}
+        if( blockfd[i] != csock && blockfd[i] != msock )
+		      /* blockfd[i] should not be msock, but it happened */
+		      close(blockfd[i]);
+      nblocked = 0;
+    }
 #endif
 
-	if( overloading ){
+    if( overloading ){
 #if OVERLOADBLOCKFDS
 	    blockfd[nblocked++] = csock;
 #else
 	    close(csock);
 #endif
 	    continue;
-	}
-
-	if (option->flag_fork) {
-	    if (fork() == 0)
-		break;
-	    else
-		close(csock);
-	} else {
-	    break;
-	}
     }
-    /* here is only child running */
+
+    if (option->flag_fork) {
+	    if (fork() == 0)
+        break;
+	    else
+        close(csock);
+    } else {
+	    break;
+    }
+  }
+  /* here is only child running */
 
 #ifndef VALGRIND
-    setproctitle("%s: ...login wait... ", margs);
+  setproctitle("%s: ...login wait... ", margs);
 #endif
-    close(msock);
-    dup2(csock, 0);
-    close(csock);
-    dup2(0, 1);
+  close(msock);
+  dup2(csock, 0);
+  close(csock);
+  dup2(0, 1);
 
-    // Free the ban ip resource list.
-    banip = free_banip_list(banip);
+  // Free the ban ip resource list.
+  banip = free_banip_list(banip);
 
-    XAUTH_GETREMOTENAME(getremotename(xsin.sin_addr, fromhost));
-    telnet_init(1);
-    return 1;
+  XAUTH_GETREMOTENAME(getremotename(xsin.sin_addr, fromhost));
+  telnet_init(1);
+  return 1;
 }
 
 /*
