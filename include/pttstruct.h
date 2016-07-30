@@ -523,6 +523,8 @@ typedef struct {
     char    gap_7[sizeof(int)];
     int     currsorted;
     time4_t UTMPuptime;
+    // 依照 mbbsd.c 中檢查 loading 的 function 推測，應該是目前上站人數
+    // 或者也可以說是目前使用這塊 SHM 的 processes 數目 (可以這樣說嗎?)
     int     UTMPnumber;
     char    UTMPneedsort;
     char    UTMPbusystate;

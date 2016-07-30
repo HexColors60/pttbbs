@@ -105,61 +105,69 @@ signal_restart(int signum, void (*handler) (int))
 static void
 start_daemon(struct ProgramOption *option)
 {
+  // ???: 不知道拿來幹麻
 #ifndef VALGRIND
-    int             n, fd;
+  int             n, fd;
 #endif
 
-    /*
-     * More idiot speed-hacking --- the first time conversion makes the C
-     * library open the files containing the locale definition and time zone.
-     * If this hasn't happened in the parent process, it happens in the
-     * children, once per connection --- and it does add up.
-     */
-    time_t          dummy = time(NULL);
-    struct tm       dummy_time;
-    char            buf[32];
+  /*
+   * More idiot speed-hacking --- the first time conversion makes the C
+   * library open the files containing the locale definition and time zone.
+   * If this hasn't happened in the parent process, it happens in the
+   * children, once per connection --- and it does add up.
+   */
+  time_t          dummy = time(NULL);
+  struct tm       dummy_time;
+  char            buf[32];
 
-    localtime_r(&dummy, &dummy_time);
-    strftime(buf, sizeof(buf), "%d/%b/%Y:%H:%M:%S", &dummy_time);
+  localtime_r(&dummy, &dummy_time);
+  strftime(buf, sizeof(buf), "%d/%b/%Y:%H:%M:%S", &dummy_time);
 
-    if (option->flag_fork) {
-	if (fork()) {
+  if (option->flag_fork) {
+  	if (fork()) {
+      // Parent Exit (Child process keeps going)
+      // Q: Why not just using the parent process ?
+      // Ans: http://stackoverflow.com/questions/4192472/why-do-daemons-fork
 	    exit(0);
-	}
-    }
+  	}
+  }
 
-    /* rocker.011018: it's a good idea to close all unexcept fd!! */
+  /* rocker.011018: it's a good idea to close all unexcept fd!! */
 #ifndef VALGRIND
-    n = getdtablesize();
-    while (n)
-	close(--n);
+  n = getdtablesize(); // Get the number of file descriptors
+  // Close all file descritors
+  while (n)
+	 close(--n);
 
-    if( ((fd = OpenCreate("log/stderr", O_WRONLY | O_APPEND)) >= 0) && fd != 2 ){
-	dup2(fd, 2);
-	close(fd);
-    }
+  // Redirect the stderr to a log file
+  if( ((fd = OpenCreate("log/stderr", O_WRONLY | O_APPEND)) >= 0) && fd != 2 ){
+    dup2(fd, 2);
+    close(fd);
+  }
 #endif
 
-    if(getenv("SSH_CLIENT"))
-	unsetenv("SSH_CLIENT");
-    if(getenv("SSH_CONNECTION"))
-	unsetenv("SSH_CONNECTION");
+  // Unset 某些變數 (話說 SSH_CLIENT 好像也沒在用了)
+  if(getenv("SSH_CLIENT"))
+    unsetenv("SSH_CLIENT");
+  if(getenv("SSH_CONNECTION"))
+    unsetenv("SSH_CONNECTION");
 
-    /*
-     * rocker.011018: we don't need to remember original tty, so request a
-     * new session id
-     */
-    setsid();
+  /*
+   * rocker.011018: we don't need to remember original tty, so request a
+   * new session id
+   */
+  // 將該行程設定為 session leader 與行程領導者
+  setsid();
 
-    /*
-     * rocker.011018: after new session, we should insure the process is
-     * clean daemon
-     */
-    if (option->flag_fork) {
-	if (fork()) {
-	    exit(0);
-	}
+  /*
+   * rocker.011018: after new session, we should insure the process is
+   * clean daemon
+   */
+  if (option->flag_fork) {
+    if (fork()) {
+      exit(0);
     }
+  }
 }
 
 static void
@@ -1830,7 +1838,7 @@ int main(int argc, char *argv[], char *envp[])
     do_term_init(option->term_mode,
 	    option->term_width, option->term_height);
 
-    if (option->tunnel_mode)
+      if (option->tunnel_mode)
     {
 	// force reset attribute because tunnel may not have enough time
 	// to flush output...
@@ -1851,31 +1859,43 @@ int main(int argc, char *argv[], char *envp[])
 static int
 shell_login(char *argv0, struct ProgramOption *option)
 {
-    int fd;
-    BanIpList *banip = NULL;
+  int fd;
+  BanIpList *banip = NULL;
 
-    STATINC(STAT_SHELLLOGIN);
-    /* Give up root privileges: no way back from here */
-    setgid(BBSGID);
-    setuid(BBSUID);
-    chdir(BBSHOME);
+  // ???: 不太確定拿來做甚麼
+  STATINC(STAT_SHELLLOGIN);
+
+  /* Give up root privileges: no way back from here */
+  setgid(BBSGID);
+  setuid(BBSUID);
+  chdir(BBSHOME);
 
 #if defined(linux) && defined(DEBUG)
 //    mtrace();
 #endif
 
-    snprintf(margs, sizeof(margs), "%s ssh ", argv0);
-    close(2);
-    /* don't close fd 1, at least init_tty need it */
-    if(((fd = OpenCreate("log/stderr", O_WRONLY | O_APPEND)) >= 0) &&
-       fd != 2 ){
-	dup2(fd, 2);
-	close(fd);
-    }
+  // Save the arguement list to margs
+  snprintf(margs, sizeof(margs), "%s ssh ", argv0);
 
-    init_tty();
+  // Close the standard error output stream
+  close(2);
 
-    // XXX overwrite fromhost here is better?
+  // 開啟一個檔案，並使用 dup2 將 2 (stderr) 替換為檔案的 FD
+  // 可能是為了要將輸出到 stderr 重導到一個 log file 中
+  if(((fd = OpenCreate("log/stderr", O_WRONLY | O_APPEND)) >= 0) &&
+      fd != 2 ) {
+    dup2(fd, 2);
+    // 根據這裡的說法：http://stackoverflow.com/questions/9457784/how-to-use-dup2-close-correctly-to-connect-these-three-processes
+    // 關閉 fd 並不會真的關到檔案，而只是讓這個 fd detach 檔案
+    close(fd);
+  }
+
+  // TODO: 似乎是用來初始化很重要的東西
+  init_tty();
+
+  // TODO: 先看到這邊為止
+
+  // XXX overwrite fromhost here is better?
     if(getenv("SSH_CONNECTION") != NULL){
 	char frombuf[50];
 	sscanf(getenv("SSH_CONNECTION"), "%s", frombuf);
@@ -2059,6 +2079,7 @@ daemon_login(char *argv0, struct ProgramOption *option)
   // Load ban ip table.
   banip = load_banip_list(FN_CONF_BANIP, NULL);
 
+  // ???: 為什麼要在 port 23 (TCP) 下 fork 一堆 processes
 #ifdef PRE_FORK
   if (option->flag_fork) {
     if( listen_port == 23 ){ // only pre-fork in port 23
@@ -2070,6 +2091,7 @@ daemon_login(char *argv0, struct ProgramOption *option)
   }
 #endif
 
+  // ???: 這個 log 不知道有甚麼意義
   snprintf(buf, sizeof(buf), "run/mbbsd.%d.%d.pid", listen_port, (int)getpid());
   if ((fp = fopen(buf, "w"))) {
     fprintf(fp, "%d\n", (int)getpid());
@@ -2079,6 +2101,7 @@ daemon_login(char *argv0, struct ProgramOption *option)
   /* main loop */
   while( 1 ){
     len_of_sock_addr = sizeof(xsin);
+    // 這裡是使用者登入的起點 (accept a connection)
     if ( (csock = accept(msock, (struct sockaddr *)&xsin,
 		    (socklen_t *)&len_of_sock_addr)) < 0 ) {
       if (errno != EINTR)
@@ -2086,6 +2109,8 @@ daemon_login(char *argv0, struct ProgramOption *option)
 	    continue;
     }
 
+    // 檢查該 ip 是否被 ban 或者 server 已經超載
+    // TODO: Check this function
     overloading = check_ban_and_load(csock, option, banip,
         xsin.sin_addr.s_addr, NULL);
 #if OVERLOADBLOCKFDS
@@ -2123,15 +2148,24 @@ daemon_login(char *argv0, struct ProgramOption *option)
 #ifndef VALGRIND
   setproctitle("%s: ...login wait... ", margs);
 #endif
+
+  // Child process close main socket
   close(msock);
+
+  // 將 child socket 接到 stdin, stdin 接到 stdout
+  // ???: 不確定為甚麼要這樣做
   dup2(csock, 0);
   close(csock);
   dup2(0, 1);
 
-  // Free the ban ip resource list.
+  // Free the ban ip resource list. (for this process)
   banip = free_banip_list(banip);
 
+  // 看起來是在嘗試取得 hostname for the client
   XAUTH_GETREMOTENAME(getremotename(xsin.sin_addr, fromhost));
+
+  // 正式開始進行 telnet 連線
+  // TODO: Check this function
   telnet_init(1);
   return 1;
 }
@@ -2140,77 +2174,86 @@ daemon_login(char *argv0, struct ProgramOption *option)
  * check if we're banning login and if the load is too high. if login is
  * permitted, return 0; else return -1; approriate message is output to fd.
  */
+// OK: Read
 static int
 check_ban_and_load(int fd, struct ProgramOption *option,
                    BanIpList *banip, IPv4 addr, const char *override_ip)
 {
-    FILE           *fp;
-    static time4_t   chkload_time = 0;
-    static int      overload = 0;	/* overload or banned, update every 1
-					 * sec  */
-    static int      banned = 0;
+  FILE           *fp;
+  static time4_t   chkload_time = 0;
+  static int      overload = 0;	/* overload or banned, update every 1 sec  */
+  static int      banned = 0;
 
-    if (banip) {
-        const char *msg = override_ip ? in_banip_list(banip, override_ip) :
-                                        in_banip_list_addr(banip, addr);
-        if (msg) {
-            write(fd, msg, strlen(msg));
-            return -1;
-        }
+  // 檢查是否該 ip 在 ban 的 list 內
+  // ???: 不確定 override_ip 的用途，daemon_login 似乎沒有用到
+  if (banip) {
+    const char *msg = override_ip ? in_banip_list(banip, override_ip) :
+                                    in_banip_list_addr(banip, addr);
+    if (msg) {
+      write(fd, msg, strlen(msg));
+      return -1;
     }
+  }
 
-    // if you have your own banner, define as INSCREEN in pttbbs.conf
-    // if you don't want anny benner, define NO_INSCREEN
+  // if you have your own banner, define as INSCREEN in pttbbs.conf
+  // if you don't want anny benner, define NO_INSCREEN
 #ifndef NO_INSCREEN
 # ifndef   INSCREEN
 #  define  INSCREEN "【" BBSNAME "】◎(" MYHOSTNAME ", " MYIP ") \r\n"
 # endif
-    write(fd, INSCREEN, sizeof(INSCREEN));
+  write(fd, INSCREEN, sizeof(INSCREEN));
 #endif
 
-    if ((time(0) - chkload_time) > 1) {
-	overload = 0;
-	banned = 0;
+  if ((time(0) - chkload_time) > 1) {
+  	overload = 0;
+  	banned = 0;
 
+  // 檢查 CPU Loading 是否超過最高容許範圍 (預設是 70%)
 	if(cpuload(NULL) > MAX_CPULOAD)
-	    overload = 1;
-	else if (SHM->UTMPnumber >= MAX_ACTIVE
-#ifdef DYMAX_ACTIVE
-		|| (SHM->GV2.e.dymaxactive > 2000 &&
-		    SHM->UTMPnumber >= SHM->GV2.e.dymaxactive)
+    overload = 1;
+  // 檢查是否有超過最高許可上站人數
+  else if (SHM->UTMPnumber >= MAX_ACTIVE
+#ifdef DYMAX_ACTIVE // 這個參數八成是在控制是否可以動態調整最大上站數
+      || (SHM->GV2.e.dymaxactive > 2000 &&
+          SHM->UTMPnumber >= SHM->GV2.e.dymaxactive)
 #endif
-		) {
-	    ++SHM->GV2.e.toomanyusers;
-	    overload = 2;
+  ) {
+    ++SHM->GV2.e.toomanyusers; // 紀錄有多少人因為人數太多而被擋住
+    overload = 2;
+  // 如果此 process 沒有權限存取 ban file
 	} else if(!access(BBSHOME "/" BAN_FILE, R_OK))
-	    banned = 1;
+    banned = 1; // ???: 直接 ban 掉？幹麻這樣？
 
-	chkload_time = time(0);
-    }
+    chkload_time = time(0);
+  }
 
-    if (!option->flag_checkload)
-	overload = 0;
+  // 沒有開啟 check load 功能，清除剛才的 check 結果
+  // SLMT: 那幹麻不一開始就跳過就好 = =
+  if (!option->flag_checkload)
+    overload = 0;
 
 #ifdef ADMIN_PORT
-    if (listen_port == ADMIN_PORT)
-        overload = 0;
+  // ???: 應該是讓管理員可以直接進來，但是看不太懂為甚麼是檢查 listen_port
+  if (listen_port == ADMIN_PORT)
+    overload = 0;
 #endif
 
-    if(overload == 1)
-	write(fd, "系統過載, 請稍後再來\r\n", 22);
-    else if(overload == 2)
-	write(fd, "由於人數過多，請您稍後再來。", 28);
-    else if (banned && (fp = fopen(BBSHOME "/" BAN_FILE, "r"))) {
-	char     buf[256];
-	while (fgets(buf, sizeof(buf), fp))
-	    write(fd, buf, strlen(buf));
-	fclose(fp);
-    }
+  // 輸出檢查結果到 log file
+  if(overload == 1)
+    write(fd, "系統過載, 請稍後再來\r\n", 22);
+  else if(overload == 2)
+    write(fd, "由於人數過多，請您稍後再來。", 28);
+  else if (banned && (fp = fopen(BBSHOME "/" BAN_FILE, "r"))) {
+    char     buf[256];
+    while (fgets(buf, sizeof(buf), fp))
+      write(fd, buf, strlen(buf));
+      fclose(fp);
+  }
 
-    if (banned || overload)
-	return -1;
+  if (banned || overload)
+    return -1;
 
-    return 0;
+  return 0;
 }
 
 int
