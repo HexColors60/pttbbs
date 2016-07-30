@@ -1504,6 +1504,7 @@ static int      check_ban_and_load(int fd, struct ProgramOption *option,
                                    BanIpList *list, IPv4 addr,
                                    const char *override_ip);
 
+// SLMT: Read
 static void init(void)
 {
   start_time = time(NULL);
@@ -1622,6 +1623,7 @@ bool parse_bindport_conf(const char *path, struct ProgramOption *option)
 
 // 將程式啟動的參數 parse 為 ProgramOption
 // 注意：裡面包含 fork
+// SLMT: Read
 bool parse_argv(int argc, char *argv[], struct ProgramOption *option)
 {
   int ch;
@@ -1802,6 +1804,7 @@ bool parse_argv(int argc, char *argv[], struct ProgramOption *option)
   return true;
 }
 
+// SLMT: Read
 int main(int argc, char *argv[], char *envp[])
 {
   bool oklogin = false;
@@ -1822,7 +1825,10 @@ int main(int argc, char *argv[], char *envp[])
   // 初始化 Shared Memory
   attach_SHM();
 
-  // TODO: 下次從這裡開始
+  // 這邊在根據不同的連線方式，初始化各種不同的連線
+  // 看起來一般會使用 daemon_login 的方法啟動
+  // 特別注意 main process 會停留在這些 function 中
+  // 若有人連線則會 fork 出一個新的 child process 來接續後面的動作
   if (!option->daemon_mode)
     oklogin = shell_login(argv[0], option);
   else if (option->tunnel_mode)
@@ -1830,30 +1836,39 @@ int main(int argc, char *argv[], char *envp[])
   else
     oklogin = daemon_login(argv[0], option);
 
-    if (!oklogin) {
-	free_program_option(option);
-	return 0;
-    }
+  // === 這邊開始應該只有 child process ===
 
-    do_term_init(option->term_mode,
-	    option->term_width, option->term_height);
-
-      if (option->tunnel_mode)
-    {
-	// force reset attribute because tunnel may not have enough time
-	// to flush output...
-	output(ANSI_RESET, sizeof(ANSI_RESET)-1);
-	move(b_lines-1, 0);
-	outs("登入中，請稍候...");
-	doupdate();
-    }
-
-    start_client(option);
+  // 前面連線失敗，直接離開
+  if (!oklogin) {
     free_program_option(option);
-    is_login_ready = 1;
+    return 0;
+  }
 
-    // tail recursion!
-    return main_menu();
+  // TODO: 檢查這個 funciton
+  do_term_init(option->term_mode,
+      option->term_width, option->term_height);
+
+  // TODO: 不確定 tunnel mode 在幹麻，先暫時跳過
+  if (option->tunnel_mode) {
+    // force reset attribute because tunnel may not have enough time
+    // to flush output...
+    output(ANSI_RESET, sizeof(ANSI_RESET)-1);
+    move(b_lines-1, 0);
+    outs("登入中，請稍候...");
+    doupdate();
+  }
+
+  // 初始化 client 資料
+  // 這個 function 包含了使用者登入的動作
+  // TODO: Start from here: 下次從這裡開始
+  start_client(option);
+
+  free_program_option(option);
+  is_login_ready = 1;
+
+  // tail recursion!
+  // 進入 PTT 主畫面
+  return main_menu();
 }
 
 static int
@@ -2026,6 +2041,7 @@ tunnel_login(char *argv0, struct ProgramOption *option)
     return 1;
 }
 
+// SLMT: Read
 static int
 daemon_login(char *argv0, struct ProgramOption *option)
 {
@@ -2164,7 +2180,7 @@ daemon_login(char *argv0, struct ProgramOption *option)
   // 看起來是在嘗試取得 hostname for the client
   XAUTH_GETREMOTENAME(getremotename(xsin.sin_addr, fromhost));
 
-  // 正式開始進行 telnet 連線
+  // 初始化 telnet 連線
   // TODO: Check this function
   telnet_init(1);
   return 1;
