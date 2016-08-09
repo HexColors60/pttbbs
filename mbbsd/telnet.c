@@ -6,41 +6,45 @@ static char		raw_connection = 0;
 #ifdef DETECT_CLIENT
 extern void UpdateClientCode(unsigned char c);
 
+// SLMT: Read
 static void
 telnet_cb_update_client_code(void *cc_arg GCC_UNUSED, unsigned char c)
 {
-    UpdateClientCode(c);
+  UpdateClientCode(c);
 }
 #endif
 
+// SLMT: Read
 static void
 telnet_cb_resize_term(void *resize_arg GCC_UNUSED, int w, int h)
 {
-    term_resize(w, h);
+  term_resize(w, h);
 }
 
+// SLMT: Read
 static const struct TelnetCallback telnet_callback = {
-    NULL,
-    telnet_cb_resize_term,
+  NULL,
+  telnet_cb_resize_term,
 #ifdef DETECT_CLIENT
-    telnet_cb_update_client_code,
+  telnet_cb_update_client_code,
 #else
-    NULL,
+  NULL,
 #endif
 };
 
+// SLMT: Read
 void
 telnet_init(int do_init_cmd)
 {
-    int fd = 0;
-    TelnetCtx *ctx = &telnet_ctx;
-    raw_connection = 1;
-    telnet_ctx_init(ctx, &telnet_callback, fd);
+  int fd = 0; // Standard Input, 特別注意 mbbsd.c 可能會將 TCP socket 轉接到 fd = 0
+  TelnetCtx *ctx = &telnet_ctx;
+  raw_connection = 1;
+  telnet_ctx_init(ctx, &telnet_callback, fd);
 #ifdef DETECT_CLIENT
-    telnet_ctx_set_cc_arg(ctx, (void*)1);
+  telnet_ctx_set_cc_arg(ctx, (void*)1);
 #endif
-    if (do_init_cmd)
-	telnet_ctx_send_init_cmds(ctx);
+  if (do_init_cmd)
+    telnet_ctx_send_init_cmds(ctx);
 }
 
 /* tty_read
