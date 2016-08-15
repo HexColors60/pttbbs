@@ -75,11 +75,13 @@ void term_resize(int w, int h)
     }
 }
 
+// SLMT: Read
 int
 term_init(void)
 {
-    Signal(SIGWINCH, sig_term_resize);
-    return YEA;
+  // Make Term auto resize
+  Signal(SIGWINCH, sig_term_resize);
+  return YEA;
 }
 
 void
@@ -88,4 +90,3 @@ bell(void)
     const char c = Ctrl('G');
     write(1, &c, 1);
 }
-

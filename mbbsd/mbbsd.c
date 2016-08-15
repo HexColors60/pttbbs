@@ -1347,21 +1347,28 @@ do_aloha(const char *hello)
     }
 }
 
+// SLMT: Read
 static void
 do_term_init(enum TermMode term_mode, int w, int h)
 {
-    term_init();
-    initscr();
+  // Initalize terminal
+  // (Actually it just make the terminal register a SIGWINCH handler)
+  term_init();
 
-    // if the terminal was already determined, resize for it.
-    if ((w && (w != t_columns)) ||
-	(h && (h != t_lines  )) )
-    {
-	term_resize(w, h);
-    }
+  // Actually initalize the underlying terminal (pfterm, I think)
+  // TODO: Trace this function
+  initscr();
 
-    if (term_mode == TermMode_TTY)
-	raise(SIGWINCH);
+  // if the terminal was already determined, resize for it.
+  if ((w && (w != t_columns)) ||
+      (h && (h != t_lines))) {
+    term_resize(w, h);
+  }
+
+  // Force the term to resize
+  // TODO: Check sig_term_resize() in term.c
+  if (term_mode == TermMode_TTY)
+    raise(SIGWINCH);
 }
 
 static int
@@ -1844,7 +1851,7 @@ int main(int argc, char *argv[], char *envp[])
     return 0;
   }
 
-  // TODO: 檢查這個 funciton
+  // 初始化這個使用者的 terminal
   do_term_init(option->term_mode,
       option->term_width, option->term_height);
 
