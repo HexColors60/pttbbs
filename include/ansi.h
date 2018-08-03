@@ -5,8 +5,10 @@
 /* This is a more elegant style which is first introduced by pmore(piaip)
  * and then promoted by  Rong-en Fan (rafan). */
 
+// Reference: https://en.wikipedia.org/wiki/ANSI_escape_code
+
 /* to help pmore know that we've already included this. */
-#define PMORE_STYLE_ANSI 
+#define PMORE_STYLE_ANSI
 
 // Escapes.
 #define ESC_NUM (0x1b)

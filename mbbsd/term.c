@@ -36,43 +36,59 @@ init_tty(void)
 
 #define TERMCOMSIZE (40)
 
+// SLMT: Read
+// 關於這個 function 內使用的東西可以上網搜尋 IOCTL_TTY 的文件
 static void
 sig_term_resize(int sig GCC_UNUSED)
 {
-    struct winsize  newsize;
-    Signal(SIGWINCH, SIG_IGN);	/* Don't bother me! */
-    ioctl(0, TIOCGWINSZ, &newsize);
-    term_resize(newsize.ws_col, newsize.ws_row);
+  // 關於這個 struct
+  struct winsize newsize;
+
+  // 暫時忽略 SIGWINCH 信號，等到調整完後會重新註冊這個 function
+  Signal(SIGWINCH, SIG_IGN);	/* Don't bother me! */
+
+  // 取得現在視窗的大小
+  // TODO: 為什麼是抓 standard input (fd = 0) ?
+  ioctl(0, TIOCGWINSZ, &newsize);
+
+  // 根據抓到的長寬來調整內建的 terminal
+  term_resize(newsize.ws_col, newsize.ws_row);
 }
 
+// SLMT: Read
 void term_resize(int w, int h)
 {
-    int dorefresh = 0;
-    Signal(SIGWINCH, SIG_IGN);	/* Don't bother me! */
+  // 是否需要重新更新 terminal
+  int dorefresh = 0;
 
+  // 暫時忽略 SIGWINCH 信號，等到調整完後會重新註冊這個 function
+  Signal(SIGWINCH, SIG_IGN);	/* Don't bother me! */
 
-    /* make sure reasonable size */
-    h = MAX(24, MIN(100, h));
-    w = MAX(80, MIN(200, w));
+  /* make sure reasonable size */
+  h = MAX(24, MIN(100, h));
+  w = MAX(80, MIN(200, w));
 
-    if (w != t_columns || h != t_lines)
-    {
-	// invoke terminal system resize
-	resizeterm(h, w);
+  // t_columns 與 t_lines 宣告在 var.c
+  if (w != t_columns || h != t_lines) {
+    // invoke terminal system resize
+    resizeterm(h, w);
 
-	t_lines = h;
-	t_columns = w;
-	dorefresh = 1;
-    }
-    b_lines = t_lines - 1;
-    p_lines = t_lines - 4;
+    t_lines = h;
+    t_columns = w;
+    dorefresh = 1;
+  }
 
-    Signal(SIGWINCH, sig_term_resize);
-    if (dorefresh)
-    {
-	redrawwin();
-	refresh();
-    }
+  // 這些變數都宣告再 var.c
+  b_lines = t_lines - 1;
+  p_lines = t_lines - 4;
+
+  // 重新接收 SIGWINCH 信號
+  Signal(SIGWINCH, sig_term_resize);
+
+  if (dorefresh) {
+    redrawwin();
+    refresh();
+  }
 }
 
 // SLMT: Read

@@ -365,11 +365,12 @@ signal_xcpu_handler(int sig)
 }
 #endif
 
+// SLMT: Read
 /* 登錄 BBS 程式 */
 static void
 mysrand(void)
 {
-    srandom(time(NULL) + getpid());	/* 時間跟 pid 當 rand 的 seed */
+  srandom(time(NULL) + getpid());	/* 時間跟 pid 當 rand 的 seed */
 }
 
 void
@@ -773,49 +774,64 @@ load_current_user(const char *uid)
 static void
 login_query(char *ruid)
 {
+  // uid => 使用者名稱
 #ifdef CONVERT
-    /* uid 加一位, for gb login */
-    char            uid[IDLEN + 2];
-    int		    len;
+  /* uid 加一位, for gb login */
+  char            uid[IDLEN + 2];
+  int		    len;
 #else
-    char            uid[IDLEN + 1];
+  char            uid[IDLEN + 1];
 #endif
 
-    char	    passbuf[PASSLEN];
-    int             attempts;
+  char	    passbuf[PASSLEN];
+  int             attempts;
 
-    resolve_garbage();
+  // TODO: 檢查這個 function 的用途
+  resolve_garbage();
 
 #ifdef DEBUG
-    move(1, 0);
-    prints("debugging mode\ncurrent pid: %d\n", getpid());
+  // TODO: 暫時不考慮這個
+  move(1, 0);
+  prints("debugging mode\ncurrent pid: %d\n", getpid());
 #else
-    show_file("etc/Welcome", 1, -1, SHOWFILE_ALLOW_ALL);
+  // 呼叫 Terminal 顯示某檔案的內容
+  show_file("etc/Welcome", 1, -1, SHOWFILE_ALLOW_ALL);
 #endif
 
-    attempts = 0;
-    while (1) {
-	if (attempts++ >= LOGINATTEMPTS) {
+  // TODO: NEXT-START
+  attempts = 0;
+  while (1) {
+    // 如果使用者密碼輸入錯誤超過一定次數就把他踢出去
+    if (attempts++ >= LOGINATTEMPTS) {
+      // TODO: 了解這個 function 的用途
 	    more("etc/goodbye", NA);
+      // TODO: 了解這個 function 的用途
 	    pressanykey();
 	    sleep(3);
 	    exit(1);
-	}
-	pwcuInitZero();
+    }
+
+    // TODO: 了解這個 function 的用途
+    pwcuInitZero();
 
 #ifdef DEBUG
-	move(19, 0);
-	prints("current pid: %d ", getpid());
+  // TODO: 暫時不考慮這個
+  move(19, 0);
+  prints("current pid: %d ", getpid());
 #endif
 
+  // 讀取使用者名稱 (uid)
 	if (getdata(20, 0, "請輸入代號，或以 guest 參觀，或以 new 註冊: ",
-		uid, sizeof(uid), DOECHO) < 1)
-	{
-	    // got nothing
-	    outs("請重新輸入。\n");
-	    continue;
+		uid, sizeof(uid), DOECHO) < 1) {
+    // got nothing
+    outs("請重新輸入。\n");
+    continue;
 	}
+
+  // TODO: 了解這個 function 的用途
 	telnet_turnoff_client_detect();
+
+  // TODO: Next Start Point
 
 #ifdef CONVERT
 	/* switch to gb mode if uid end with '.' */
@@ -1365,8 +1381,7 @@ do_term_init(enum TermMode term_mode, int w, int h)
     term_resize(w, h);
   }
 
-  // Force the term to resize
-  // TODO: Check sig_term_resize() in term.c
+  // Force the terminal to resize
   if (term_mode == TermMode_TTY)
     raise(SIGWINCH);
 }
@@ -1375,58 +1390,76 @@ static int
 start_client(struct ProgramOption *option)
 {
 #ifdef CPULIMIT_PER_DAY
-    struct rlimit   rml;
-    getrlimit(RLIMIT_CPU, &rml);
-    rml.rlim_cur = CPULIMIT_PER_DAY;
-    setrlimit(RLIMIT_CPU, &rml);
+  // Set up the limits of CPU capacities
+  struct rlimit   rml;
+  getrlimit(RLIMIT_CPU, &rml);
+  rml.rlim_cur = CPULIMIT_PER_DAY;
+  setrlimit(RLIMIT_CPU, &rml);
 #endif
 
-    STATINC(STAT_LOGIN);
-    /* system init */
-    nice(2);			/* Ptt: lower priority */
-    login_start_time = time(0);
-    currmode = 0;
+  // TODO: 這是個有點複雜的 Macro，要深入看一下
+  // 貌似是用來記錄整個系統的 statistics 的 marco
+  // 例如這個似乎就是用來記錄 login 的人數
+  STATINC(STAT_LOGIN);
 
-    Signal(SIGHUP, abort_bbs);
-    Signal(SIGTERM, abort_bbs);
-    Signal(SIGPIPE, abort_bbs);
+  /* system init */
+  // 調整 client process 的 priority
+  // 範圍是 -20 (最高) ~ +19 (最低)
+  nice(2);			/* Ptt: lower priority */
+  login_start_time = time(0); // 取得從 1970 年開始到現在的時間 (以秒為單位)
 
-    Signal(SIGINT, abort_bbs_debug);
-    Signal(SIGQUIT, abort_bbs_debug);
-    Signal(SIGILL, abort_bbs_debug);
-    Signal(SIGABRT, abort_bbs_debug);
-    Signal(SIGFPE, abort_bbs_debug);
-    Signal(SIGBUS, abort_bbs_debug);
-    Signal(SIGSEGV, abort_bbs_debug);
+  // 定義在 var.c
+  // TODO: 不確定用來幹嘛
+  currmode = 0;
+
+  // TODO: Signal Handler 都先跳過
+  Signal(SIGHUP, abort_bbs);
+  Signal(SIGTERM, abort_bbs);
+  Signal(SIGPIPE, abort_bbs);
+
+  // TODO: Signal Handler 都先跳過
+  Signal(SIGINT, abort_bbs_debug);
+  Signal(SIGQUIT, abort_bbs_debug);
+  Signal(SIGILL, abort_bbs_debug);
+  Signal(SIGABRT, abort_bbs_debug);
+  Signal(SIGFPE, abort_bbs_debug);
+  Signal(SIGBUS, abort_bbs_debug);
+  Signal(SIGSEGV, abort_bbs_debug);
 #ifdef CPULIMIT_PER_DAY
-    Signal(SIGXCPU, signal_xcpu_handler);
+  Signal(SIGXCPU, signal_xcpu_handler);
 #endif
 
-    signal_restart(SIGUSR1, talk_request);
-    signal_restart(SIGUSR2, write_request);
+  // TODO: Signal Handler 都先跳過
+  signal_restart(SIGUSR1, talk_request);
+  signal_restart(SIGUSR2, write_request);
 
-    Signal(SIGALRM, abort_bbs);
-    alarm(600);
+  // 設定 alarm
+  // TODO: 不確定原因
+  Signal(SIGALRM, abort_bbs);
+  alarm(600);
 
-    mysrand(); /* 初始化: random number 增加user跟時間的差異 */
-    now = time(0);
+  mysrand(); /* 初始化: random number 增加user跟時間的差異 */
+  now = time(0);
 
-    // if flag_user contains an uid, it is already authorized.
-    if (!option->flag_user[0])
-    {
-	// query user
-	login_query(option->flag_user);
-    }
-    // process new, register, and load user data
-    load_current_user(option->flag_user);
-    last_login_time = cuser.lastlogin;	// keep a backup
+  // if flag_user contains an uid, it is already authorized.
+  // 好像可以從啟動程式的選項中直接設定使用者
+  if (!option->flag_user[0])
+  {
+    // query user
+    // TODO: 正在閱讀這個 function
+    login_query(option->flag_user);
+  }
+  // process new, register, and load user data
+  load_current_user(option->flag_user);
+  last_login_time = cuser.lastlogin;	// keep a backup
 
-    m_init();			/* init the user mail path */
-    user_login();
-    auto_close_polls();		/* 自動開票 */
+  m_init();			/* init the user mail path */
+  user_login();
+  auto_close_polls();		/* 自動開票 */
 
-    Signal(SIGALRM, SIG_IGN);
-    return 0;
+  // 忽略 alarm
+  Signal(SIGALRM, SIG_IGN);
+  return 0;
 }
 
 static void
@@ -1867,7 +1900,6 @@ int main(int argc, char *argv[], char *envp[])
 
   // 初始化 client 資料
   // 這個 function 包含了使用者登入的動作
-  // TODO: Start from here: 下次從這裡開始
   start_client(option);
 
   free_program_option(option);
@@ -2102,7 +2134,8 @@ daemon_login(char *argv0, struct ProgramOption *option)
   // Load ban ip table.
   banip = load_banip_list(FN_CONF_BANIP, NULL);
 
-  // ???: 為什麼要在 port 23 (TCP) 下 fork 一堆 processes
+  // 先 Fork 一堆 process 節省之後 fork 的時間
+  // TODO: 找出哪裡會用到這些 process
 #ifdef PRE_FORK
   if (option->flag_fork) {
     if( listen_port == 23 ){ // only pre-fork in port 23
