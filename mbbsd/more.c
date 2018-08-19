@@ -218,14 +218,15 @@ int more(const char *fpath, int promptend)
     if (!fp) return -1;
     clear();
 
-    if (promptend == NA) {	    // quick print one page
-	for (i = 0; i < t_lines-1; i++)
-	    if (!fgets(buf, sizeof(buf), fp))
-		break;
-	    else
-		outs(buf);
-	fclose(fp);
-	return 0;
+	// 印出檔案前端直到 Terminal 塞滿
+    if (promptend == NA) {
+		for (i = 0; i < t_lines-1; i++)
+			if (!fgets(buf, sizeof(buf), fp))
+				break;
+			else
+				outs(buf);
+		fclose(fp);
+		return 0;
     }
     // YEA mode: pre-read
     while (lines < PAGER_MAXLINES-1 &&

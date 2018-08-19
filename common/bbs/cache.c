@@ -220,30 +220,42 @@ remove_from_uhash(int n)
 #warning "searchuser() average chaining MAX_USERS/(1<<HASH_BITS) times."
 #endif
 
-int
-dosearchuser(const char *userid, char *rightid)
+// 根據給定的 userid (user name) 去 shared memory 搜尋使用者（無視大小寫）
+// 回傳使用者的編號，看起來是用類似 HashMap 的方式實作
+// rightid 會儲存該 user 真正的名稱
+int dosearchuser(const char *userid, char *rightid)
 {
-    int             h, p, times;
+    int h, p, times;
+
+	// 紀錄目前 search 過多少 user
     STATINC(STAT_SEARCHUSER);
-    h = StringHash(userid)%(1<<HASH_BITS);
+
+	// 對 user 名稱取 hash，並只保留 2^16 以內的 bit
+    h = StringHash(userid) % (1 << HASH_BITS);
+
+	// 取得 hash 對應的 user index
     p = SHM->hash_head[h];
 
+	// 搜索該 user 的編號
     for (times = 0; times < MAX_USERS && p != -1 && p < MAX_USERS ; ++times) {
-	if (strcasecmp(SHM->userid[p], userid) == 0) {
-	    if(userid[0] && rightid) strcpy(rightid, SHM->userid[p]);
-	    return p + 1;
-	}
-	p = SHM->next_in_hash[p];
+		if (strcasecmp(SHM->userid[p], userid) == 0) {
+			// 將正確 id 存入 rightId 內
+			// 猜測可能是因為 userid 與真正的符合的 id 大小寫可能不同
+			if(userid[0] && rightid)
+				strcpy(rightid, SHM->userid[p]);
+			return p + 1;
+		}
+		// 若 hash value collsion，以類似 linked list 的方式串接
+		p = SHM->next_in_hash[p];
     }
 
     return 0;
 }
 
-int
-searchuser(const char *userid, char *rightid)
+int searchuser(const char *userid, char *rightid)
 {
     if(userid[0]=='\0')
-	return 0;
+		return 0;
     return dosearchuser(userid, rightid);
 }
 

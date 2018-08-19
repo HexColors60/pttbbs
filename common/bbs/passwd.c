@@ -140,14 +140,20 @@ passwd_update(int num, userec_t * buf)
     return 0;
 }
 
-int
-passwd_query(int num, userec_t * buf)
+// 調閱使用者資料（不是只有密碼)
+// num: (input) 使用者編號
+// buf: (output) 使用者資料
+int passwd_query(int num, userec_t * buf)
 {
-    int             pwdfd;
+    int pwdfd;
     if (num < 1 || num > MAX_USERS)
-	return -1;
+	    return -1;
+
+    // 開啟使用者資料檔
     if ((pwdfd = open(fn_passwd, O_RDONLY)) < 0)
-	exit(1);
+	    exit(1);
+    
+    // 讀取使用者資料
     lseek(pwdfd, sizeof(userec_t) * (num - 1), SEEK_SET);
     read(pwdfd, buf, sizeof(userec_t));
     close(pwdfd);
@@ -155,21 +161,27 @@ passwd_query(int num, userec_t * buf)
     return 0;
 }
 
-int 
-passwd_load_user(const char *userid, userec_t *buf)
+// 載入指定的 user 資料
+// userid: (input) 使用者名稱
+// buf: (output) 使用者資料結構
+// return 使用者編號
+int passwd_load_user(const char *userid, userec_t *buf)
 {
+    // user 的編號（unique)
     int unum = 0;
 
-   if( !userid ||
+    // 搜尋 user 編號
+    if( !userid ||
        !userid[0] ||
        !(unum = searchuser(userid, NULL)) || 
        unum > MAX_USERS)
-      return -1;
+        return -1;
 
-   if (passwd_query(unum, buf) != 0)
-       return -1;
+    // 調閱 user 資料 (包括密碼在內所有個人資料)
+    if (passwd_query(unum, buf) != 0)
+        return -1;
 
-   return unum;
+    return unum;
 }
 
 int
@@ -210,16 +222,19 @@ passwd_require_secure_connection(const userec_t *u)
 }
 
 // XXX NOTE: string in plain will be destroyed.
-int
-checkpasswd(const char *passwd, char *plain)
+// 檢查密碼是否相同
+// passwd: 正確的密碼（加密過)
+// plain: 輸入的密碼 (沒加密)，比對完後會被刪除
+// return 是否相同
+int checkpasswd(const char *passwd, char *plain)
 {
     int             ok;
     char           *pw;
 
     ok = 0;
-    pw = fcrypt(plain, passwd);
-    if(pw && strcmp(pw, passwd)==0)
-	ok = 1;
+    pw = fcrypt(plain, passwd); // 轉換輸入成另一種形式
+    if(pw && strcmp(pw, passwd) == 0)
+	    ok = 1;
     memset(plain, 0, strlen(plain));
 
     return ok;
@@ -249,32 +264,37 @@ genpasswd(char *pw)
     return "";
 }
 
-
-void
-logattempt(const char *uid, char type, time4_t now, const char *loghost)
+// 紀錄特定 ip 嘗試登入某使用者
+// uid: 使用者名稱
+// type: ??
+// now: 嘗試時間
+// loghost: 嘗試者 IP
+void logattempt(const char *uid, char type, time4_t now, const char *loghost)
 {
     char fname[PATHLEN];
     int  fd, len;
     char genbuf[200];
 
+    // 建立 log 字串
     snprintf(genbuf, sizeof(genbuf), "%c%-12s[%s] ?@%s\n", type, uid,
 	    Cdate(&now), loghost);
     len = strlen(genbuf);
+
     // log to public (BBSHOME)
     if ((fd = OpenCreate(FN_BADLOGIN, O_WRONLY | O_APPEND)) >= 0) {
-	write(fd, genbuf, len);
-	close(fd);
+        write(fd, genbuf, len);
+        close(fd);
     }
+
     // log to user private log
     if (type == '-') {
-	snprintf(genbuf, sizeof(genbuf),
-		 "[%s] %s\n", Cdate(&now), loghost);
-	len = strlen(genbuf);
-	sethomefile(fname, uid, FN_BADLOGIN);
-	if ((fd = OpenCreate(fname, O_WRONLY | O_APPEND)) >= 0) {
-	    write(fd, genbuf, len);
-	    close(fd);
-	}
+	    snprintf(genbuf, sizeof(genbuf), "[%s] %s\n", Cdate(&now), loghost);
+	    len = strlen(genbuf);
+	    sethomefile(fname, uid, FN_BADLOGIN);
+	    if ((fd = OpenCreate(fname, O_WRONLY | O_APPEND)) >= 0) {
+	        write(fd, genbuf, len);
+	        close(fd);
+	    }
     }
 }
 

@@ -11,8 +11,10 @@
  #define cuser pwcuser
 #endif
 
-int
-initcuser(const char *userid)
+// 初始化使用者資料，包含檢查搜尋使用者名稱並載入資料到記憶體
+// userid: 使用者名稱
+// return 使用者編號
+int initcuser(const char *userid)
 {
     usernum = passwd_load_user(userid, &cuser);
     return usernum;
@@ -35,35 +37,38 @@ passwd_sync_update(int num, userec_t * buf)
     return 0;
 }
 
-int
-passwd_sync_query(int num, userec_t * buf)
+// 讀取指定使用者的資料到 buf，並讀取金錢數。若跟現在的 user 編號相同，
+// 也設定金錢到現在 user 的資料。
+// num: (input) 使用者編號
+// buf: (output) 使用者資料結構
+int passwd_sync_query(int num, userec_t *buf)
 {
     if (passwd_query(num, buf) < 0)
-	return -1;
+	    return -1;
 
     buf->money = moneyof(num);
 
-    if (num == usernum)
-	cuser.money = moneyof(num);
+    if (num == usernum) // 備註：usernum 是在 init 時初始化
+	    cuser.money = moneyof(num);
 
     return 0;
 }
 
 // pwcu*: current user password helpers
 
-static int
-pwcuInitCUser(userec_t *u)
+// SLMT: 不確定為什麼要讀取 cuser 更另一個 user 的資料
+static int pwcuInitCUser(userec_t *u)
 {
     assert(usernum > 0 && usernum <= MAX_USERS);
     if (passwd_sync_query(usernum, u) != 0)
-	return -1;
+	    return -1;
 #ifdef DEBUG
     log_filef("log/pwcu_exitsave.log", LOG_CREAT, "%s InitCUser  invoked at %s\n",
 	    cuser.userid, Cdatelite(&now));
 #endif
     assert(strncmp(u->userid, cuser.userid, IDLEN) == 0);
-    if    (strncmp(u->userid, cuser.userid, IDLEN) != 0)
-	return -1;
+    if (strncmp(u->userid, cuser.userid, IDLEN) != 0)
+	    return -1;
     return 0;
 }
 
@@ -609,18 +614,20 @@ void pwcuInitZero	()
     bzero(&cuser, sizeof(cuser));
 }
 
-int pwcuInitAdminPerm	()
+// 將權限依照「管理員模式」進行設定
+int pwcuInitAdminPerm()
 {
-    PWCU_START();
+    PWCU_START(); // TODO: 不確定這在幹啥
     cuser.userlevel = PERM_BASIC | PERM_CHAT | PERM_PAGE |
 	PERM_POST | PERM_LOGINOK | PERM_MAILLIMIT |
 	PERM_CLOAK | PERM_SEECLOAK | PERM_XEMPT |
 	PERM_SYSOPHIDE | PERM_BM | PERM_ACCOUNTS |
 	PERM_CHATROOM | PERM_BOARD | PERM_SYSOP | PERM_BBSADM;
-    PWCU_END();
+    PWCU_END(); // TODO: 不確定這在幹啥
 }
 
-void pwcuInitGuestPerm	()
+// 將權限依照「訪客模式」進行設定
+void pwcuInitGuestPerm()
 {
     cuser.userlevel = 0;
     cuser.uflag = UF_BRDSORT;
@@ -640,14 +647,14 @@ void pwcuInitGuestInfo	()
 {
     int i;
     char *nick[] = {
-	"���l", "����", "����", "�_�S�~", "½����",
-	"��", "�B��", "�c�l", "�����", "�]��",
-	"�K��", "�Ҩ�", "�j���k"
+	"椰子", "貝殼", "內衣", "寶特瓶", "翻車魚",
+	"樹葉", "浮萍", "鞋子", "潛水艇", "魔王",
+	"鐵罐", "考卷", "大美女"
     };
 
     i = random() % DIM(nick);
     snprintf(cuser.nickname, sizeof(cuser.nickname),
-	    "����}�Ӫ�%s", nick[i]);
+	    "海邊漂來的%s", nick[i]);
     strlcpy(currutmp->nickname, cuser.nickname,
 	    sizeof(currutmp->nickname));
     strlcpy(cuser.realname, "guest", sizeof(cuser.realname));

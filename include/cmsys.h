@@ -269,6 +269,7 @@ struct TelnetCallback {
  * screen.xterm-256color */
 #define TELNET_IAC_MAXLEN (32)
 
+// SLMT: 猜測：client connection
 struct TelnetCtx {
     int fd;		// should be blocking fd
     unsigned char iac_state;

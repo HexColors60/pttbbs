@@ -612,8 +612,8 @@ getotherlogin(int num)
 {
     userinfo_t *ui;
     do {
-	if (!(ui = (userinfo_t *) search_ulistn(usernum, num)))
-	    return NULL;		/* user isn't logged in */
+	    if (!(ui = (userinfo_t *) search_ulistn(usernum, num)))
+	        return NULL;		/* user isn't logged in */
 
 	/* skip sleeping process, this is slow if lots */
 	if(ui->mode == DEBUGSLEEPING)
@@ -633,18 +633,22 @@ static void
 multi_user_check(void)
 {
     register userinfo_t *ui;
-    char            genbuf[3];
+    char genbuf[3];
 
+    // 忽略站長
     if (HasUserPerm(PERM_SYSOP))
-	return;			/* don't check sysops */
+	    return;			/* don't check sysops */
 
+    // SLMT: 我猜大概是初始化 random seed
     srandom(getpid());
+
+    // TODO: NEXT-START
     // race condition here, sleep may help..?
     if (cuser.userlevel) {
-	usleep(random()%1000000); // 0~1s
-	ui = getotherlogin(1);
-	if(ui == NULL)
-	    return;
+	    usleep(random()%1000000); // 0~1s
+	    ui = getotherlogin(1);
+	    if(ui == NULL)
+	        return;
 
 	move(b_lines-3, 0); clrtobot();
 	outs("\n" ANSI_COLOR(1) "注意: 您有其它連線已登入此帳號。" ANSI_RESET);
@@ -686,14 +690,14 @@ multi_user_check(void)
     }
 }
 
-void
-mkuserdir(const char *userid)
+// 創建 user 資料夾
+void mkuserdir(const char *userid)
 {
     char genbuf[PATHLEN];
     sethomepath(genbuf, userid);
     // assume it is a dir, so just check if it is exist
     if (access(genbuf, F_OK) != 0)
-	Mkdir(genbuf);
+	    Mkdir(genbuf);
 }
 
 static int
@@ -714,13 +718,18 @@ load_current_user(const char *uid)
     if (!is_admin_only && strcasecmp(uid, STR_REGNEW) == 0) {
 
 # ifndef LOGINASNEW
-	assert(false);
-	exit(0);
+        assert(false);
+        exit(0);
 # endif // !LOGINASNEW
 
-	new_register();
-	mkuserdir(cuser.userid);
-	reginit_fav();
+        // 進入註冊程序
+        new_register(); // TODO: Read later
+
+        // 創建新用戶資料夾
+        mkuserdir(cuser.userid);
+
+        // 初始化「我的最愛」
+        reginit_fav(); // TODO: Read later
     } else
 #endif
 
@@ -728,16 +737,17 @@ load_current_user(const char *uid)
 
 #ifdef STR_GUEST
     if (!is_admin_only && strcasecmp(uid, STR_GUEST) == 0) {
-	if (initcuser(STR_GUEST)< 1) exit (0) ;
-	pwcuInitGuestPerm();
-	// can we prevent mkuserdir() here?
-	mkuserdir(cuser.userid);
+        if (initcuser(STR_GUEST) < 1)
+            exit(0);
+        pwcuInitGuestPerm();
+        // can we prevent mkuserdir() here?
+        mkuserdir(cuser.userid);
     } else
 #endif
 
     // ---------------------------------------------------- USER ACCOUNT
     {
-	if (!cuser.userid[0] && initcuser(uid) < 1)
+	    if (!cuser.userid[0] && initcuser(uid) < 1)
             exit(0);
 
         if (is_admin_only) {
@@ -752,142 +762,140 @@ load_current_user(const char *uid)
 #ifdef LOCAL_LOGIN_MOD
 	LOCAL_LOGIN_MOD();
 #endif
-	if (strcasecmp(str_sysop, cuser.userid) == 0){
+	    if (strcasecmp(str_sysop, cuser.userid) == 0){
 #ifdef NO_SYSOP_ACCOUNT
-	    exit(0);
+	        exit(0);
 #else /* 自動加上各個主要權限 */
-	    // TODO only allow in local connection?
-	    pwcuInitAdminPerm();
+	        // TODO only allow in local connection?
+	        pwcuInitAdminPerm();
 #endif
-	}
-	/* 早該有 home 了, 不知道為何有的帳號會沒有, 被砍掉了? */
-	mkuserdir(cuser.userid);
-	logattempt(cuser.userid, ' ', login_start_time, fromhost);
-	ensure_user_agreement_version();
+	    }
+        /* 早該有 home 了, 不知道為何有的帳號會沒有, 被砍掉了? */
+        mkuserdir(cuser.userid);
+        logattempt(cuser.userid, ' ', login_start_time, fromhost);
+        ensure_user_agreement_version();
     }
 
     // check multi user
+    // TODO: NEXT-START
     multi_user_check();
     return 1;
 }
 
-static void
-login_query(char *ruid)
+// 進入使用者登入程序，這個程序會向 client 請求使用者名稱與密碼，
+// 並且會載入使用者的基本資料
+// ruid: (output) 登入成功的使用者名稱/新註冊(New)/訪客(Guest)
+static void login_query(char *ruid)
 {
   // uid => 使用者名稱
 #ifdef CONVERT
-  /* uid 加一位, for gb login */
-  char            uid[IDLEN + 2];
-  int		    len;
+    /* uid 加一位, for gb login */
+    char            uid[IDLEN + 2];
+    int		    len;
 #else
-  char            uid[IDLEN + 1];
+    char            uid[IDLEN + 1];
 #endif
 
-  char	    passbuf[PASSLEN];
-  int             attempts;
+    char	    passbuf[PASSLEN];
+    int             attempts;
 
-  // TODO: 檢查這個 function 的用途
-  resolve_garbage();
+    // TODO: 檢查這個 function 的用途
+    resolve_garbage();
 
 #ifdef DEBUG
-  // TODO: 暫時不考慮這個
-  move(1, 0);
-  prints("debugging mode\ncurrent pid: %d\n", getpid());
+    // TODO: 暫時不考慮這個
+    move(1, 0);
+    prints("debugging mode\ncurrent pid: %d\n", getpid());
 #else
-  // 呼叫 Terminal 顯示某檔案的內容
-  show_file("etc/Welcome", 1, -1, SHOWFILE_ALLOW_ALL);
+    // 呼叫 Terminal 顯示某檔案的內容
+    show_file("etc/Welcome", 1, -1, SHOWFILE_ALLOW_ALL);
 #endif
 
-  // TODO: NEXT-START
-  attempts = 0;
-  while (1) {
-    // 如果使用者密碼輸入錯誤超過一定次數就把他踢出去
-    if (attempts++ >= LOGINATTEMPTS) {
-      // TODO: 了解這個 function 的用途
-	    more("etc/goodbye", NA);
-      // TODO: 了解這個 function 的用途
-	    pressanykey();
-	    sleep(3);
-	    exit(1);
-    }
+    attempts = 0;
+    while (1) {
+        // 如果使用者密碼輸入錯誤超過一定次數就把他踢出去
+        if (attempts++ >= LOGINATTEMPTS) {
+            // 印出 Goodbay 頁面
+	        more("etc/goodbye", NA);
+            // TODO: 了解這個 function 的用途
+	        pressanykey();
+	        sleep(3);
+	        exit(1);
+        }
 
-    // TODO: 了解這個 function 的用途
-    pwcuInitZero();
+        // 初始化 TODO: 某個東西
+        pwcuInitZero();
 
 #ifdef DEBUG
-  // TODO: 暫時不考慮這個
-  move(19, 0);
-  prints("current pid: %d ", getpid());
+        // TODO: 暫時不考慮這個
+        move(19, 0);
+        prints("current pid: %d ", getpid());
 #endif
 
-  // 讀取使用者名稱 (uid)
-	if (getdata(20, 0, "請輸入代號，或以 guest 參觀，或以 new 註冊: ",
-		uid, sizeof(uid), DOECHO) < 1) {
-    // got nothing
-    outs("請重新輸入。\n");
-    continue;
-	}
+        // 讀取使用者名稱 (uid)
+        if (getdata(20, 0, "請輸入代號，或以 guest 參觀，或以 new 註冊: ",
+            uid, sizeof(uid), DOECHO) < 1) {
+            // got nothing
+            outs("請重新輸入。\n");
+            continue;
+        }
 
-  // TODO: 了解這個 function 的用途
-	telnet_turnoff_client_detect();
-
-  // TODO: Next Start Point
+        // 將 client connection 的 cc_arg 設為 null 
+        telnet_turnoff_client_detect();
 
 #ifdef CONVERT
-	/* switch to gb mode if uid end with '.' */
-	len = strlen(uid);
-	if (uid[0] && uid[len - 1] == ',') {
-	    set_converting_type(CONV_UTF8);
-	    uid[len - 1] = 0;
-	    redrawwin();
-	}
-        else if (uid[0] && uid[len - 1] == '.') {
+        // SLMT: 看起來是在轉換 encoding
+        // TODO: Skip, read later
+        /* switch to gb mode if uid end with '.' */
+        len = strlen(uid);
+        if (uid[0] && uid[len - 1] == ',') {
+            set_converting_type(CONV_UTF8);
+            uid[len - 1] = 0;
+            redrawwin();
+        } else if (uid[0] && uid[len - 1] == '.') {
             outs("Sorry, GB encoding is not supported anymore. Please use UTF-8 (id,)");
             continue;
-	}
-	else if (len >= IDLEN + 1)
-	    uid[IDLEN] = 0;
+        } else if (len >= IDLEN + 1)
+            uid[IDLEN] = 0;
 #endif
-
-	if (!is_validuserid(uid)) {
-
-	    outs(err_uid);
-
+        // 檢查 username 是否合法
+        if (!is_validuserid(uid)) {
+            outs(err_uid);
 #ifdef STR_GUEST
-	} else if (strcasecmp(uid, STR_GUEST) == 0) {	/* guest */
-
-	    strlcpy(ruid, STR_GUEST, IDLEN+1);
-	    break;
+        // 檢查是否是訪客
+        } else if (strcasecmp(uid, STR_GUEST) == 0) {	/* guest */
+            strlcpy(ruid, STR_GUEST, IDLEN+1);
+            break;
 #endif
-
+        // 檢查是否要求新建帳號
 #ifdef STR_REGNEW
-	} else if (strcasecmp(uid, STR_REGNEW) == 0) {
+	    } else if (strcasecmp(uid, STR_REGNEW) == 0) {
 # ifndef LOGINASNEW
-	    outs("本系統目前無法以 " STR_REGNEW " 註冊"
+	        outs("本系統目前無法以 " STR_REGNEW " 註冊"
 #  ifdef STR_GUEST
-		 ", 請用 " STR_GUEST " 進入"
+		    ", 請用 " STR_GUEST " 進入"
 #  endif  // STR_GUEST
-		 "\n");
-	    continue;
+		    "\n");
+	        continue;
 # endif // !LOGINASNEW
 
-	    strlcpy(ruid, STR_REGNEW, IDLEN+1);
-	    break;
+	        strlcpy(ruid, STR_REGNEW, IDLEN+1);
+	        break;
 
 #endif // STR_REGNEW
 
-	} else {
-	    /* normal user */
-
+        } else { // 一般使用者
             int valid_user = 1;
 
             /* load the user record */
+            // SLMT: cuser 會在 initcuser 中被載入要求的使用者資料
             if (initcuser(uid) < 1 || !cuser.userid[0])
                 valid_user = 0;
 
             /* check if the user is forced to login via secure connection. */
             if (valid_user &&
-                (passwd_require_secure_connection(&cuser) && !is_secure_connection)) {
+                (passwd_require_secure_connection(&cuser) && 
+                !is_secure_connection)) {
                 outs("抱歉，此帳號已設定為只能使用安全連線(如ssh)登入。\n");
                 doupdate();
                 sleep(5);
@@ -895,33 +903,32 @@ login_query(char *ruid)
             }
 
             /* ask user for password, even the user does not exists. */
-	    getdata(21, 0, MSG_PASSWD,
-		    passbuf, sizeof(passbuf), NOECHO);
-	    passbuf[8] = '\0';
+            getdata(21, 0, MSG_PASSWD, passbuf, sizeof(passbuf), NOECHO);
+            // 切斷輸入到只剩八位以下（密碼只允許八位）
+            passbuf[8] = '\0'; 
 
-	    move (22, 0); clrtoeol();
-	    outs("正在檢查密碼...");
-	    move(22, 0); refresh();
+            // TODO: Check ctrtoeol() 在做啥
+            move(22, 0); clrtoeol();
+            outs("正在檢查密碼...");
+            move(22, 0); refresh();
 
-	    /* prepare for later */
-	    clrtoeol();
+            /* prepare for later */
+            clrtoeol();
 
+            // 檢查密碼
             if (!valid_user || !checkpasswd(cuser.passwd, passbuf)) {
-
-		if(is_validuserid(cuser.userid))
-		    logattempt(cuser.userid , '-', login_start_time, fromhost);
-		sleep(1);
-		outs(ERR_PASSWD);
-
-	    } else {
-
-		strlcpy(ruid, cuser.userid, IDLEN+1);
-		outs("密碼正確！ 開始登入系統...");
-		move(22, 0); refresh();
-		clrtoeol();
-		break;
-	    }
-	}
+                if(is_validuserid(cuser.userid))
+                    logattempt(cuser.userid , '-', login_start_time, fromhost);
+                sleep(1);
+                outs(ERR_PASSWD);
+            } else { // 合法使用者且密碼正確
+                strlcpy(ruid, cuser.userid, IDLEN+1);
+                outs("密碼正確！ 開始登入系統...");
+                move(22, 0); refresh();
+                clrtoeol();
+                break;
+            }
+        }
     }
 
     // auth ok.
@@ -1390,76 +1397,78 @@ static int
 start_client(struct ProgramOption *option)
 {
 #ifdef CPULIMIT_PER_DAY
-  // Set up the limits of CPU capacities
-  struct rlimit   rml;
-  getrlimit(RLIMIT_CPU, &rml);
-  rml.rlim_cur = CPULIMIT_PER_DAY;
-  setrlimit(RLIMIT_CPU, &rml);
+    // Set up the limits of CPU capacities
+    struct rlimit   rml;
+    getrlimit(RLIMIT_CPU, &rml);
+    rml.rlim_cur = CPULIMIT_PER_DAY;
+    setrlimit(RLIMIT_CPU, &rml);
 #endif
 
-  // TODO: 這是個有點複雜的 Macro，要深入看一下
-  // 貌似是用來記錄整個系統的 statistics 的 marco
-  // 例如這個似乎就是用來記錄 login 的人數
-  STATINC(STAT_LOGIN);
+    // TODO: 這是個有點複雜的 Macro，要深入看一下
+    // 貌似是用來記錄整個系統的 statistics 的 marco
+    // 例如這個似乎就是用來記錄 login 的人數
+    STATINC(STAT_LOGIN);
 
-  /* system init */
-  // 調整 client process 的 priority
-  // 範圍是 -20 (最高) ~ +19 (最低)
-  nice(2);			/* Ptt: lower priority */
-  login_start_time = time(0); // 取得從 1970 年開始到現在的時間 (以秒為單位)
+    /* system init */
+    // 調整 client process 的 priority
+    // 範圍是 -20 (最高) ~ +19 (最低)
+    nice(2);			/* Ptt: lower priority */
+    login_start_time = time(0); // 取得從 1970 年開始到現在的時間 (以秒為單位)
 
-  // 定義在 var.c
-  // TODO: 不確定用來幹嘛
-  currmode = 0;
+    // 定義在 var.c
+    // TODO: 不確定用來幹嘛
+    currmode = 0;
 
-  // TODO: Signal Handler 都先跳過
-  Signal(SIGHUP, abort_bbs);
-  Signal(SIGTERM, abort_bbs);
-  Signal(SIGPIPE, abort_bbs);
+    // TODO: Signal Handler 都先跳過
+    Signal(SIGHUP, abort_bbs);
+    Signal(SIGTERM, abort_bbs);
+    Signal(SIGPIPE, abort_bbs);
 
-  // TODO: Signal Handler 都先跳過
-  Signal(SIGINT, abort_bbs_debug);
-  Signal(SIGQUIT, abort_bbs_debug);
-  Signal(SIGILL, abort_bbs_debug);
-  Signal(SIGABRT, abort_bbs_debug);
-  Signal(SIGFPE, abort_bbs_debug);
-  Signal(SIGBUS, abort_bbs_debug);
-  Signal(SIGSEGV, abort_bbs_debug);
+    // TODO: Signal Handler 都先跳過
+    Signal(SIGINT, abort_bbs_debug);
+    Signal(SIGQUIT, abort_bbs_debug);
+    Signal(SIGILL, abort_bbs_debug);
+    Signal(SIGABRT, abort_bbs_debug);
+    Signal(SIGFPE, abort_bbs_debug);
+    Signal(SIGBUS, abort_bbs_debug);
+    Signal(SIGSEGV, abort_bbs_debug);
 #ifdef CPULIMIT_PER_DAY
-  Signal(SIGXCPU, signal_xcpu_handler);
+    Signal(SIGXCPU, signal_xcpu_handler);
 #endif
 
-  // TODO: Signal Handler 都先跳過
-  signal_restart(SIGUSR1, talk_request);
-  signal_restart(SIGUSR2, write_request);
+    // TODO: Signal Handler 都先跳過
+    signal_restart(SIGUSR1, talk_request);
+    signal_restart(SIGUSR2, write_request);
 
-  // 設定 alarm
-  // TODO: 不確定原因
-  Signal(SIGALRM, abort_bbs);
-  alarm(600);
+    // 設定 alarm
+    // TODO: 不確定原因
+    Signal(SIGALRM, abort_bbs);
+    alarm(600);
 
-  mysrand(); /* 初始化: random number 增加user跟時間的差異 */
-  now = time(0);
+    mysrand(); /* 初始化: random number 增加user跟時間的差異 */
+    now = time(0);
 
-  // if flag_user contains an uid, it is already authorized.
-  // 好像可以從啟動程式的選項中直接設定使用者
-  if (!option->flag_user[0])
-  {
-    // query user
-    // TODO: 正在閱讀這個 function
-    login_query(option->flag_user);
-  }
-  // process new, register, and load user data
-  load_current_user(option->flag_user);
-  last_login_time = cuser.lastlogin;	// keep a backup
+    // if flag_user contains an uid, it is already authorized.
+    // 若啟動程式時就有指定使用者，就直接使用該使用者
+    // 若無的話，就啟動登入程序
+    if (!option->flag_user[0])
+    {
+        // query user
+        login_query(option->flag_user);
+    }
 
-  m_init();			/* init the user mail path */
-  user_login();
-  auto_close_polls();		/* 自動開票 */
+    // TODO: NEXT-START
+    // process new, register, and load user data
+    load_current_user(option->flag_user);
+    last_login_time = cuser.lastlogin;	// keep a backup
 
-  // 忽略 alarm
-  Signal(SIGALRM, SIG_IGN);
-  return 0;
+    m_init();			/* init the user mail path */
+    user_login();
+    auto_close_polls();		/* 自動開票 */
+
+    // 忽略 alarm
+    Signal(SIGALRM, SIG_IGN);
+    return 0;
 }
 
 static void

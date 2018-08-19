@@ -470,7 +470,7 @@ void newwin	(int nlines, int ncols, int y, int x)
 }
 
 /**
- * ±q¥Ø«eªº¦æ¼Æ(scr_ln) clear ¨ì²Ä line ¦æ
+ * ï¿½qï¿½Ø«eï¿½ï¿½ï¿½ï¿½ï¿½(scr_ln) clear ï¿½ï¿½ï¿½ line ï¿½ï¿½
  */
 void
 clrtoln(int line)
@@ -489,7 +489,7 @@ clrtoln(int line)
 }
 
 /**
- * ±q¥Ø«eªº¦æ¼Æ(scr_ln) clear ¨ì©³
+ * ï¿½qï¿½Ø«eï¿½ï¿½ï¿½ï¿½ï¿½(scr_ln) clear ï¿½ì©³
  */
 inline void
 clrtobot(void)

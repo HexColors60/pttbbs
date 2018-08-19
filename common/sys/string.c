@@ -8,10 +8,10 @@
 
 #define CHAR_LOWER(c)  ((c >= 'A' && c <= 'Z') ? c|32 : c)
 /* ----------------------------------------------------- */
-/* ¦r¦êÂà´«ÀË¬d¨ç¼Æ                                      */
+/* ï¿½rï¿½ï¿½ï¿½à´«ï¿½Ë¬dï¿½ï¿½ï¿½                                      */
 /* ----------------------------------------------------- */
 /**
- * ±N¦r¦ê s Âà¬°¤p¼g¦s¦^ t
+ * ï¿½Nï¿½rï¿½ï¿½ s ï¿½à¬°ï¿½pï¿½gï¿½sï¿½^ t
  * @param t allocated char array
  * @param s
  */
@@ -45,7 +45,7 @@ str_case_starts_with(const char *str, const char *prefix) {
 }
 
 /**
- * ²¾°£¦r¦ê buf «áºÝ¦h¾lªºªÅ¥Õ¡C
+ * ï¿½ï¿½ï¿½ï¿½ï¿½rï¿½ï¿½ buf ï¿½ï¿½Ý¦hï¿½lï¿½ï¿½ï¿½Å¥Õ¡C
  * @param buf
  */
 void
@@ -64,7 +64,7 @@ trim(char *buf)
 }
 
 /**
- * ²¾°£ src ªº '\n' ¨Ã§ï¦¨ '\0'
+ * ï¿½ï¿½ï¿½ï¿½ src ï¿½ï¿½ '\n' ï¿½Ã§ï¦¨ '\0'
  * @param src
  */
 void chomp(char *src)
@@ -78,7 +78,7 @@ void chomp(char *src)
 }
 
 /* ----------------------------------------------------- */
-/* ANSI ³B²z¨ç¼Æ                                         */
+/* ANSI ï¿½Bï¿½zï¿½ï¿½ï¿½                                         */
 /* ----------------------------------------------------- */
 int
 strip_blank(char *cbuf, const char *buf)
@@ -130,14 +130,14 @@ static const char EscapeFlag[] = {
     /* F0 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 /**
- * ®Ú¾Ú mode ¨Ó strip ¦r¦ê src¡A¨Ã§âµ²ªG¦s¨ì dst
+ * ï¿½Ú¾ï¿½ mode ï¿½ï¿½ strip ï¿½rï¿½ï¿½ srcï¿½Aï¿½Ã§âµ²ï¿½Gï¿½sï¿½ï¿½ dst
  * @param dst
  * @param src (if NULL then only return length)
  * @param mode enum {STRIP_ALL = 0, ONLY_COLOR, NO_RELOAD};
- *             STRIP_ALL:  ¥þ³¡¦Y±¼
- *             ONLY_COLOR: ¥u¯d¸òÃC¦â¦³Ãöªº (ESC[*m)
- *             NO_RELOAD:  ¥u¯d¤W­±»{ÃÑªº(²¾¦ì+¦â±m)
- * @return strip «áªºªø«×
+ *             STRIP_ALL:  ï¿½ï¿½ï¿½ï¿½ï¿½Yï¿½ï¿½
+ *             ONLY_COLOR: ï¿½uï¿½dï¿½ï¿½ï¿½Cï¿½â¦³ï¿½ï¿½ï¿½ï¿½ (ESC[*m)
+ *             NO_RELOAD:  ï¿½uï¿½dï¿½Wï¿½ï¿½ï¿½{ï¿½Ñªï¿½(ï¿½ï¿½ï¿½ï¿½+ï¿½ï¿½m)
+ * @return strip ï¿½áªºï¿½ï¿½ï¿½ï¿½
  */
 int
 strip_ansi(char *dst, const char *src, enum STRIP_FLAG mode)
@@ -263,7 +263,7 @@ strlen_noansi(const char *s)
 }
 
 /* ----------------------------------------------------- */
-/* DBCS ³B²z¨ç¼Æ                                         */
+/* DBCS ï¿½Bï¿½zï¿½ï¿½ï¿½                                         */
 /* ----------------------------------------------------- */
 
 void
@@ -297,7 +297,7 @@ strip_nonebig5(unsigned char *str, int maxlen)
 }
 
 /**
- * DBCS_RemoveIntrEscape(buf, len): ¥h°£ DBCS ¤@¦rÂù¦â¦r¡C
+ * DBCS_RemoveIntrEscape(buf, len): ï¿½hï¿½ï¿½ DBCS ï¿½@ï¿½rï¿½ï¿½ï¿½ï¿½rï¿½C
  * (deprecated)
  */
 int DBCS_RemoveIntrEscape(unsigned char *buf, int *len)
@@ -362,7 +362,7 @@ int DBCS_RemoveIntrEscape(unsigned char *buf, int *len)
 }
 
 /**
- * DBCS_NextStatus(c, prev_status): ¨ú±o c ªº DBCS ª¬ºA
+ * DBCS_NextStatus(c, prev_status): ï¿½ï¿½ï¿½o c ï¿½ï¿½ DBCS ï¿½ï¿½ï¿½A
  */
 int
 DBCS_NextStatus(char c, int prev_status) {
@@ -374,8 +374,8 @@ DBCS_NextStatus(char c, int prev_status) {
 }
 
 /**
- * DBCS_Status(dbcstr, pos): ¨ú±o¦r¦ê¤¤«ü©w¦ì¸mªº DBCS ª¬ºA¡C
- * ­Y pos ¶W¹Lµ²§À«h¶Ç¦^³Ì«á¤@­Ó¦r¤¸ªº DBCS status
+ * DBCS_Status(dbcstr, pos): ï¿½ï¿½ï¿½oï¿½rï¿½ê¤¤ï¿½ï¿½ï¿½wï¿½ï¿½mï¿½ï¿½ DBCS ï¿½ï¿½ï¿½Aï¿½C
+ * ï¿½Y pos ï¿½Wï¿½Lï¿½ï¿½ï¿½ï¿½ï¿½hï¿½Ç¦^ï¿½Ì«ï¿½@ï¿½Ó¦rï¿½ï¿½ï¿½ï¿½ DBCS status
  */
 int DBCS_Status(const char *dbcstr, int pos)
 {
@@ -400,7 +400,7 @@ void DBCS_safe_trim(char *dbcstr)
 }
 
 /**
- * DBCS_strcasestr(pool, ptr): ¦b¦r¦ê pool ¤¤´M§ä ptr (¥u©¿²¤­^¤å¤j¤p¼g)
+ * DBCS_strcasestr(pool, ptr): ï¿½bï¿½rï¿½ï¿½ pool ï¿½ï¿½ï¿½Mï¿½ï¿½ ptr (ï¿½uï¿½ï¿½ï¿½ï¿½ï¿½^ï¿½ï¿½jï¿½pï¿½g)
  */
 char *
 DBCS_strcasestr(const char* pool, const char *ptr)
@@ -451,7 +451,7 @@ DBCS_strcasestr(const char* pool, const char *ptr)
 }
 
 /*
- * DBCS_strncasecmp(s1, s2, len): ¤ñ¸û s1/s2 (¥u©¿²¤­^¤å¤j¤p¼g)
+ * DBCS_strncasecmp(s1, s2, len): ï¿½ï¿½ï¿½ s1/s2 (ï¿½uï¿½ï¿½ï¿½ï¿½ï¿½^ï¿½ï¿½jï¿½pï¿½g)
  */
 int
 DBCS_strncasecmp(const char *s1, const char *s2, size_t len) {
@@ -472,7 +472,7 @@ DBCS_strncasecmp(const char *s1, const char *s2, size_t len) {
 }
 
 /* ----------------------------------------------------- */
-/* ¦r¦êÀË¬d¨ç¼Æ¡G­^¤å¡B¼Æ¦r¡BÀÉ¦W¡BE-mail address        */
+/* ï¿½rï¿½ï¿½ï¿½Ë¬dï¿½ï¿½Æ¡Gï¿½^ï¿½ï¿½Bï¿½Æ¦rï¿½Bï¿½É¦Wï¿½BE-mail address        */
 /* ----------------------------------------------------- */
 
 int
@@ -484,10 +484,10 @@ invalid_pname(const char *str)
     while (*p1) {
 	if (!(p2 = strchr(p1, '/')))
 	    p2 = str + strlen(str);
-	if (p1 + 1 > p2 || p1 + strspn(p1, ".") == p2) /* ¤£¤¹³\¥Î / ¶}ÀY, ©Î¬O // ¤§¶¡¥u¦³ . */
+	if (p1 + 1 > p2 || p1 + strspn(p1, ".") == p2) /* ï¿½ï¿½ï¿½ï¿½ï¿½\ï¿½ï¿½ / ï¿½}ï¿½Y, ï¿½Î¬O // ï¿½ï¿½ï¿½ï¿½ï¿½uï¿½ï¿½ . */
 	    return 1;
 	for (p3 = p1; p3 < p2; p3++)
-	    if (!isalnum(*p3) && !strchr("@[]-._", *p3)) /* ¥u¤¹³\ alnum ©Î³o¨Ç²Å¸¹ */
+	    if (!isalnum(*p3) && !strchr("@[]-._", *p3)) /* ï¿½uï¿½ï¿½ï¿½\ alnum ï¿½Î³oï¿½Ç²Å¸ï¿½ */
 		return 1;
 	p1 = p2 + (*p2 ? 1 : 0);
     }
@@ -496,7 +496,7 @@ invalid_pname(const char *str)
 
 /*
  * return	1	if /^[0-9]+$/
- * 		0	else, §tªÅ¦r¦ê
+ * 		0	else, ï¿½tï¿½Å¦rï¿½ï¿½
  */
 int is_number(const char *p)
 {
@@ -510,8 +510,7 @@ int is_number(const char *p)
     return 1;
 }
 
-unsigned
-StringHash(const char *s)
+unsigned StringHash(const char *s)
 {
     return fnv1a_32_strcase(s, FNV1_32_INIT);
 }
@@ -612,15 +611,15 @@ static inline
 int
 mmdecode(unsigned char *src, unsigned char encode, unsigned char *dst)
 {
-    /* Thor.980901: src©Mdst¥i¬Û¦P, ¦ýsrc ¤@©w¦³?©Î\0µ²§ô */
-    /* Thor.980901: ª`·N, decode¥Xªºµ²ªG¤£·|¦Û¤v¥[¤W \0 */
+    /* Thor.980901: srcï¿½Mdstï¿½iï¿½Û¦P, ï¿½ï¿½src ï¿½@ï¿½wï¿½ï¿½?ï¿½ï¿½\0ï¿½ï¿½ï¿½ï¿½ */
+    /* Thor.980901: ï¿½`ï¿½N, decodeï¿½Xï¿½ï¿½ï¿½ï¿½ï¿½Gï¿½ï¿½ï¿½|ï¿½Û¤vï¿½[ï¿½W \0 */
     unsigned char  *t = dst;
     int             pattern = 0, bits = 0;
     encode |= 0x20;		/* Thor: to lower */
     switch (encode) {
     case 'q':			/* Thor: quoted-printable */
 	while (*src && *src != '?') {	/* Thor: delimiter *//* Thor.980901:
-					 * 0 ºâ¬O delimiter */
+					 * 0 ï¿½ï¿½O delimiter */
 	    if (*src == '=') {
 		int             x = *++src, y = x ? *++src : 0;
 		if (isreturn(x))
@@ -641,7 +640,7 @@ mmdecode(unsigned char *src, unsigned char encode, unsigned char *dst)
     case 'b':			/* Thor: base 64 */
 	while (*src && *src != '?') {	/* Thor: delimiter */
 	    /*
-	     * Thor.980901: 0¤]ºâ *//* Thor: pattern & bits are cleared
+	     * Thor.980901: 0ï¿½]ï¿½ï¿½ *//* Thor: pattern & bits are cleared
 	     * outside
 	     */
 	    int             x;
@@ -675,10 +674,10 @@ str_iconv(
 	  size_t dstlen)
 {				/* destination string length */
     /*
-     * ³o­Ó¨ç¦¡·|±N¤@­Ó¦r¦ê (src) ±q charset=fromcode Âà¦¨ charset=tocode,
-     * srclen ¬O src ªºªø«×, dst ¬O¿é¥Xªºbuffer, dstlen «h«ü©w¤F dst ªº¤j¤p,
-     * ³Ì«á·|¸É '\0', ©Ò¥H­n¯d¤@­Óbyteµ¹'\0'. ¦pªG¹J¨ì src ¤¤¦³«D¦r¶°ªº¦r,
-     * ©Î¬O src ¤¤¦³¥¼§¹¾ãªº byte, ³£·|¬å±¼.
+     * ï¿½oï¿½Ó¨ç¦¡ï¿½|ï¿½Nï¿½@ï¿½Ó¦rï¿½ï¿½ (src) ï¿½q charset=fromcode ï¿½à¦¨ charset=tocode,
+     * srclen ï¿½O src ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½, dst ï¿½Oï¿½ï¿½Xï¿½ï¿½buffer, dstlen ï¿½hï¿½ï¿½ï¿½wï¿½F dst ï¿½ï¿½ï¿½jï¿½p,
+     * ï¿½Ì«ï¿½|ï¿½ï¿½ '\0', ï¿½Ò¥Hï¿½nï¿½dï¿½@ï¿½ï¿½byteï¿½ï¿½'\0'. ï¿½pï¿½Gï¿½Jï¿½ï¿½ src ï¿½ï¿½ï¿½ï¿½ï¿½Dï¿½rï¿½ï¿½ï¿½ï¿½ï¿½r,
+     * ï¿½Î¬O src ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ãªº byte, ï¿½ï¿½ï¿½|ï¿½å±¼.
      */
     iconv_t         iconv_descriptor;
     size_t          iconv_ret, dstlen_old;
@@ -792,7 +791,7 @@ str_decode_M3(char *str)
 #endif
 			while (*tmp && *tmp++ != '?');	/* Thor: no ? end,
 							 * mmdecode -1 */
-			/* Thor.980901: 0 ¤]ºâ decode µ²§ô */
+			/* Thor.980901: 0 ï¿½]ï¿½ï¿½ decode ï¿½ï¿½ï¿½ï¿½ */
 			if (*tmp == '=')
 			    tmp++;
 			src = tmp;	/* Thor: decode over */

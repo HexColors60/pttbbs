@@ -57,6 +57,7 @@ typedef struct chicken_t { /* 128 bytes */
 
 #define PASSWD_VERSION	4194
 
+// 使用者資料（此資料會被存在 FN_PASSWD 中，以使用者編號 index)
 typedef struct userec_t {
     uint32_t	version;	/* version number of this sturcture, we
     				 * use revision number of project to denote.*/

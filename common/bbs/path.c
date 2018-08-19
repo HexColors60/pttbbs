@@ -18,8 +18,8 @@ static const char * const str_board_n_file = "boards/%c/%s/%s.%d";
 static const char * const str_dotdir = FN_DIR;
 
 /* XXX set*() all assume buffer size = PATHLEN */
-void
-sethomepath(char *buf, const char *userid)
+// 將 buf 設為 user 的家目錄路徑，格式 home/[使用者名稱第一個字]/[使用者名稱]
+void sethomepath(char *buf, const char *userid)
 {
     assert(is_validuserid(userid));
     snprintf(buf, PATHLEN, "home/%c/%s", userid[0], userid);
@@ -116,7 +116,7 @@ setbnfile(char *buf, const char *boardname, const char *fname, int n)
 /*
  * input	direct
  * output	buf: copy direct
- * 		fname: direct ���ɦW����
+ * 		fname: direct ���ɦW����
  */
 void
 setdirpath(char *buf, const char *direct, const char *fname)
